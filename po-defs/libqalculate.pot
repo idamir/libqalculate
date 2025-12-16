@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-02 17:17+0200\n"
+"POT-Creation-Date: 2025-08-10 12:43+0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -11350,58 +11350,66 @@ msgid "Typography"
 msgstr ""
 
 #: ../data/units.xml.in.h:668
-msgid "PostScript Point"
+msgid "PostScript Point (Big Point, DTP Point)"
 msgstr ""
 
 #: ../data/units.xml.in.h:669
-msgid "ar:pt,a:pts,point,p:points"
+msgid "ar:pt,a:pts,point,p:points,bp,p:bps,big_point,p:big_points,dtp_point,p:dtp_points"
 msgstr ""
 
 #: ../data/units.xml.in.h:670
-msgid "PostScript Pica"
+msgid "TeX Point"
 msgstr ""
 
 #: ../data/units.xml.in.h:671
-msgid "r:pica,p:picas"
+msgid "r:tex_point,p:tex_points"
 msgstr ""
 
 #: ../data/units.xml.in.h:672
-msgid "ATA Pica"
+msgid "PostScript Pica"
 msgstr ""
 
 #: ../data/units.xml.in.h:673
-msgid "r:ata_pica,p:ata_picas"
+msgid "r:pica,p:picas"
 msgstr ""
 
 #: ../data/units.xml.in.h:674
-msgid "ATA Point"
+msgid "ATA Pica"
 msgstr ""
 
 #: ../data/units.xml.in.h:675
-msgid "r:ata_point,a:ata_pt,p:ata_points"
+msgid "r:ata_pica,p:ata_picas"
 msgstr ""
 
 #: ../data/units.xml.in.h:676
-msgid "New Didot Point"
+msgid "ATA Point"
 msgstr ""
 
 #: ../data/units.xml.in.h:677
-msgid "r:new_didot"
+msgid "r:ata_point,a:ata_pt,p:ata_points"
 msgstr ""
 
 #: ../data/units.xml.in.h:678
-msgid "Didot Point"
+msgid "New Didot Point"
 msgstr ""
 
 #: ../data/units.xml.in.h:679
-msgid "r:didot,a:dd"
+msgid "r:new_didot"
 msgstr ""
 
 #: ../data/units.xml.in.h:680
-msgid "Cicero"
+msgid "Didot Point"
 msgstr ""
 
 #: ../data/units.xml.in.h:681
+msgid "r:didot,a:dd"
+msgstr ""
+
+#: ../data/units.xml.in.h:682
+msgid "Cicero"
+msgstr ""
+
+#: ../data/units.xml.in.h:683
 msgid "r:cicero"
 msgstr ""
 

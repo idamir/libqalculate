@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libqalculate\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-02 17:17+0200\n"
+"POT-Creation-Date: 2025-08-10 12:43+0700\n"
 "PO-Revision-Date: 2024-05-04 10:02+0700\n"
 "Last-Translator: Damir Islamov <damir@secretlaboratory.ru>\n"
 "Language-Team: Russian <kde-russian@lists.kde.ru>\n"
@@ -11862,58 +11862,68 @@ msgid "Typography"
 msgstr "Книгопечатание"
 
 #: ../data/units.xml.in.h:668
-msgid "PostScript Point"
-msgstr "PostScript пункт (1/72 дюйма)"
+msgid "PostScript Point (Big Point, DTP Point)"
+msgstr ""
 
 #: ../data/units.xml.in.h:669
-msgid "ar:pt,a:pts,point,p:points"
-msgstr "a:pt,a:pts,пункт,p:пункты"
+msgid "ar:pt,a:pts,point,p:points,bp,p:bps,big_point,p:big_points,dtp_point,p:dtp_points"
+msgstr ""
 
 #: ../data/units.xml.in.h:670
+#, fuzzy
+msgid "TeX Point"
+msgstr "Пункт Хоукса"
+
+#: ../data/units.xml.in.h:671
+#, fuzzy
+msgid "r:tex_point,p:tex_points"
+msgstr "пункт_хоукс,a:ata_pt,p:ata_points"
+
+#: ../data/units.xml.in.h:672
 msgid "PostScript Pica"
 msgstr "PostScript пайка"
 
-#: ../data/units.xml.in.h:671
+#: ../data/units.xml.in.h:673
 msgid "r:pica,p:picas"
 msgstr "пайка,p:пайки"
 
-#: ../data/units.xml.in.h:672
+#: ../data/units.xml.in.h:674
 msgid "ATA Pica"
 msgstr "Пайка Хоукса"
 
-#: ../data/units.xml.in.h:673
+#: ../data/units.xml.in.h:675
 msgid "r:ata_pica,p:ata_picas"
 msgstr "пайка_хоукс,p:ata_picas"
 
-#: ../data/units.xml.in.h:674
+#: ../data/units.xml.in.h:676
 msgid "ATA Point"
 msgstr "Пункт Хоукса"
 
-#: ../data/units.xml.in.h:675
+#: ../data/units.xml.in.h:677
 msgid "r:ata_point,a:ata_pt,p:ata_points"
 msgstr "пункт_хоукс,a:ata_pt,p:ata_points"
 
-#: ../data/units.xml.in.h:676
+#: ../data/units.xml.in.h:678
 msgid "New Didot Point"
 msgstr "Новый пункт Дидо"
 
-#: ../data/units.xml.in.h:677
+#: ../data/units.xml.in.h:679
 msgid "r:new_didot"
 msgstr "новый_дидо"
 
-#: ../data/units.xml.in.h:678
+#: ../data/units.xml.in.h:680
 msgid "Didot Point"
 msgstr "Пункт Дидо"
 
-#: ../data/units.xml.in.h:679
+#: ../data/units.xml.in.h:681
 msgid "r:didot,a:dd"
 msgstr "дидо,a:dd"
 
-#: ../data/units.xml.in.h:680
+#: ../data/units.xml.in.h:682
 msgid "Cicero"
 msgstr "Цицеро"
 
-#: ../data/units.xml.in.h:681
+#: ../data/units.xml.in.h:683
 msgid "r:cicero"
 msgstr "цицеро"
 
@@ -12849,6 +12859,12 @@ msgstr "Сейчас (дата и время)"
 #: ../data/variables.xml.in.h:238
 msgid "r:now"
 msgstr "сейчас"
+
+#~ msgid "PostScript Point"
+#~ msgstr "PostScript пункт (1/72 дюйма)"
+
+#~ msgid "ar:pt,a:pts,point,p:points"
+#~ msgstr "a:pt,a:pts,пункт,p:пункты"
 
 # https://stat.ethz.ch/R-manual/R-devel/library/stats/html/quantile.html
 #~ msgid "Quantile Algorithm (as in R)"
