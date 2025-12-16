@@ -220,7 +220,7 @@ int dateTimeZone(time_t rawtime) {
 #endif
 }
 int dateTimeZone(const QalculateDateTime &dt, bool b_utc) {
-	struct tm tmdate;
+	struct tm tmdate = {};
 	time_t rawtime;
 	if(dt.year() > 2038) {
 		if(isLeapYear(dt.year())) tmdate.tm_year = 136;
@@ -238,6 +238,7 @@ int dateTimeZone(const QalculateDateTime &dt, bool b_utc) {
 	Number nsect(dt.second());
 	nsect.trunc();
 	tmdate.tm_sec = nsect.intValue();
+	tmdate.tm_isdst = -1;
 	rawtime = mktime(&tmdate);
 	if(rawtime == (time_t) -1 && (dt.year() != 1969 || dt.month() != 12 || dt.day() != 31)) {
 		if(isLeapYear(dt.year())) tmdate.tm_year = 72;
@@ -378,22 +379,42 @@ bool QalculateDateTime::set(string str) {
 		parsed_string = str_bak;
 		return true;
 	}
-	bool b_t = false, b_tz = false;
+	bool b_t = false, b_tz = false, b_tspace = true;
 	size_t i_t = str.find("T");
-	if(i_t == string::npos && str.find(":") != string::npos) i_t = str.rfind(' ');
+	if(i_t != string::npos && str.find_first_of(NUMBERS, i_t) == string::npos) i_t = string::npos;
+	if(i_t == string::npos) {
+		size_t i_c = str.find(":", 1);
+		if(i_c != string::npos) {
+			i_t = str.find_last_not_of(NUMBERS, i_c - 1);
+			if(i_t != string::npos && str[i_t] != ' ') {
+				if(i_c - i_t > 3) {
+					if((i_c - i_t) % 2 == 0) i_t = i_c - 2;
+					else i_t = i_c - 3;
+					b_tspace = false;
+				} else if(i_c - i_t == 3 && str[i_c - 2] > '2') {
+					i_t = i_c - 2;
+					b_tspace = false;
+				}
+			}
+		}
+	}
 	int newhour = 0, newmin = 0, newsec = 0;
 	int itz = 0;
-	if(i_t != string::npos && i_t < str.length() - 1 && is_in(NUMBERS, str[i_t + 1])) {
+	if(i_t != string::npos) {
 		b_t = true;
 		string time_str = str.substr(i_t + 1);
-		str.resize(i_t);
+		remove_blank_ends(time_str);
+		str.resize(b_tspace ? i_t : i_t + 1);
+		remove_blank_ends(str);
 		char tzstr[10] = "";
-		if(sscanf(time_str.c_str(), "%2u:%2u:%2u%9s", &newhour, &newmin, &newsec, tzstr) < 3) {
-			if(sscanf(time_str.c_str(), "%2u:%2u%9s", &newhour, &newmin, tzstr) < 2) {
-				if(sscanf(time_str.c_str(), "%2u%2u%2u%9s", &newhour, &newmin, &newsec, tzstr) < 2) {
+		size_t n = time_str.length();
+		if(sscanf(time_str.c_str(), "%2u:%2u:%2u%9s%zn", &newhour, &newmin, &newsec, tzstr, &n) < 3) {
+			if(sscanf(time_str.c_str(), "%2u:%2u%9s%zn", &newhour, &newmin, tzstr, &n) < 2) {
+				if(sscanf(time_str.c_str(), "%2u%2u%2u%9s%zn", &newhour, &newmin, &newsec, tzstr, &n) < 2) {
 #ifndef _WIN32
 					struct tm tmdate;
 					if(strptime(time_str.c_str(), "%X", &tmdate) || strptime(time_str.c_str(), "%EX", &tmdate)) {
+						n = time_str.length();
 						newhour = tmdate.tm_hour;
 						newmin = tmdate.tm_min;
 						newsec = tmdate.tm_sec;
@@ -406,6 +427,7 @@ bool QalculateDateTime::set(string str) {
 				}
 			}
 		}
+		if(n < time_str.length()) return false;
 		string stz = tzstr;
 		remove_blanks(stz);
 		if(stz == "Z" || stz == "GMT" || stz == "UTC" || stz == "WET") {
@@ -439,29 +461,47 @@ bool QalculateDateTime::set(string str) {
 			b_tz = true;
 		} else if(stz.length() > 1 && (stz[0] == '-' || stz[0] == '+')) {
 			unsigned int tzh = 0, tzm = 0;
-			if(sscanf(stz.c_str() + sizeof(char), "%2u:%2u", &tzh, &tzm) > 0) {
-				itz = tzh * 60 + tzm;
-				if(str[0] == '-') itz = -itz;
-				b_tz = true;
+			if(stz.find(":", 1) == string::npos) {
+				if(stz.find_first_not_of(NUMBERS, 1) == string::npos && stz.length() <= 3) {
+					itz = s2i(stz.substr(1)) * 60;
+					if(stz[0] == '-') itz = -itz;
+					b_tz = true;
+				}
+			} else {
+				n = stz.length();
+				if(sscanf(stz.c_str() + sizeof(char), "%2u:%2u%zn", &tzh, &tzm, &n) > 0 && n == stz.length() - 1) {
+					itz = tzh * 60 + tzm;
+					if(stz[0] == '-') itz = -itz;
+					b_tz = true;
+				}
 			}
 		}
+		if(!b_tz && !stz.empty()) return false;
 	}
 	if(newhour >= 24 || newmin >= 60 || newsec > 60 || (newsec == 60 && (newhour != 23 || newmin != 59))) return false;
 	gsub(SIGN_MINUS, MINUS, str);
-	if(sscanf(str.c_str(), "%ld-%lu-%lu", &newyear, &newmonth, &newday) != 3) {
-		if(sscanf(str.c_str(), "%4ld%2lu%2lu", &newyear, &newmonth, &newday) != 3) {
+	size_t n = str.length();
+	if(!b_t && n > 1 && (str.back() == 'Z' || str.back() == 'z')) {
+		b_t = true;
+		b_tz = true;
+		n--;
+		str.erase(n, 1);
+	}
+	if(sscanf(str.c_str(), "%ld-%lu-%lu%zn", &newyear, &newmonth, &newday, &n) != 3) {
+		if(sscanf(str.c_str(), "%4ld%2lu%2lu%zn", &newyear, &newmonth, &newday, &n) != 3) {
 #ifndef _WIN32
 			struct tm tmdate;
 			if(strptime(str.c_str(), "%x", &tmdate) || strptime(str.c_str(), "%Ex", &tmdate)) {
+				n = str.length();
 				newyear = tmdate.tm_year + 1900;
 				newmonth = tmdate.tm_mon + 1;
 				newday = tmdate.tm_mday;
 			} else {
 #endif
-				if(sscanf(str.c_str(), "%ld/%ld/%ld", &newmonth, &newday, &newyear) != 3) {
-					if(sscanf(str.c_str(), "%2ld%2lu%2lu", &newyear, &newmonth, &newday) != 3) {
+				if(sscanf(str.c_str(), "%ld/%ld/%ld%zn", &newmonth, &newday, &newyear, &n) != 3) {
+					if(sscanf(str.c_str(), "%2ld%2lu%2lu%zn", &newyear, &newmonth, &newday, &n) != 3) {
 						char c1, c2;
-						if(sscanf(str.c_str(), "%ld%1c%ld%1c%ld", &newday, &c1, &newmonth, &c2, &newyear) != 5) {
+						if(sscanf(str.c_str(), "%ld%1c%ld%1c%ld%zn", &newday, &c1, &newmonth, &c2, &newyear, &n) != 5) {
 							return false;
 						}
 					}
@@ -501,7 +541,7 @@ bool QalculateDateTime::set(string str) {
 		newday = newyear;
 		newyear = y;
 	}
-	if(!set(newyear, newmonth, newday)) return false;
+	if(n < str.length() || !set(newyear, newmonth, newday)) return false;
 	if(b_t) {
 		b_time = true;
 		i_hour = newhour;
@@ -563,7 +603,7 @@ string QalculateDateTime::toISOString() const {
 }
 string QalculateDateTime::toLocalString() const {
 	if(i_year > INT_MAX || i_year < INT_MIN + 1900) return toISOString();
-	struct tm tmdate;
+	struct tm tmdate = {};
 	tmdate.tm_year = i_year - 1900;
 	tmdate.tm_mon = i_month - 1;
 	tmdate.tm_mday = i_day;
@@ -1179,7 +1219,6 @@ Number QalculateDateTime::daysTo(const QalculateDateTime &date, int basis, bool 
 	if(basis < 0 || basis > 4) basis = 1;
 
 	bool neg = false;
-	bool isleap = false;
 	long int days, years;
 
 	long int day1 = i_day, month1 = i_month, year1 = i_year;
@@ -1201,10 +1240,18 @@ Number QalculateDateTime::daysTo(const QalculateDateTime &date, int basis, bool 
 		neg = true;
 	}
 
+	if(basis == 0) {
+		if(month1 == 2 && month2 == 2 && day1 == daysPerMonth(month1, year1) && day2 == daysPerMonth(month2, year2)) day2 = 30;
+		if(month1 == 2 && day1 == daysPerMonth(month1, year1)) day1 = 30;
+		if(day2 == 31 && day1 >= 30) day2 = 30;
+		if(day1 == 31) day1 = 30;
+	} else if(basis == 4) {
+		if(day2 == 31) day2 = 30;
+		if(day1 == 31) day1 = 30;
+	}
+
 	years = year2  - year1;
 	days = day2 - day1;
-
-	isleap = isLeapYear(year1);
 
 	switch(basis) {
 		case 0: {
@@ -1213,19 +1260,6 @@ Number QalculateDateTime::daysTo(const QalculateDateTime &date, int basis, bool 
 			nr += (month2 - month1);
 			nr *= 30;
 			nr += days;
-			if(date_func) {
-				if(month1 == 2 && ((day1 == 28 && !isleap) || (day1 == 29 && isleap)) && !(month2 == month1 && day1 == day2 && year1 == year2)) {
-					if(isleap) nr -= 1;
-					else nr -= 2;
-				} else if(day1 == 31 && day2 < 31) {
-					nr++;
-				}
-			} else {
-				if(month1 == 2 && month2 != 2 && year1 == year2) {
-					if(isleap) nr -= 1;
-					else nr -= 2;
-				}
-			}
 			break;
 		}
 		case 1: {}
@@ -1274,10 +1308,6 @@ Number QalculateDateTime::daysTo(const QalculateDateTime &date, int basis, bool 
 			nr.set(years, 1, 0);
 			nr *= 12;
 			nr += (month2 - month1);
-			if(date_func) {
-				if(day2 == 31 && day1 < 31) days--;
-				if(day1 == 31 && day2 < 31) days++;
-			}
 			nr *= 30;
 			nr += days;
 			break;
@@ -1297,6 +1327,7 @@ Number QalculateDateTime::yearsTo(const QalculateDateTime &date, int basis, bool
 			bool neg = false;
 			long int day1 = i_day, month1 = i_month, year1 = i_year;
 			long int day2 = date.day(), month2 = date.month(), year2 = date.year();
+			Number nr_leap;
 			Number t1(n_sec), t2(date.second());
 			if(remove_leap_seconds) {
 				if(t1.isGreaterThanOrEqualTo(60)) t1--;
@@ -1314,30 +1345,36 @@ Number QalculateDateTime::yearsTo(const QalculateDateTime &date, int basis, bool
 			}
 			t1 /= 86400;
 			t2 /= 86400;
+			Number *nr_cur = NULL;
+			if(isLeapYear(year1)) nr_cur = &nr_leap;
+			else nr_cur = &nr;
 			for(int month = 12; month > month1; month--) {
-				nr += daysPerMonth(month, year1);
+				*nr_cur += daysPerMonth(month, year1);
 			}
-			nr += daysPerMonth(month1, year1) - day1 + 1;
-			nr -= t1;
+			*nr_cur += daysPerMonth(month1, year1) - day1 + 1;
+			*nr_cur -= t1;
+			if(isLeapYear(year2)) nr_cur = &nr_leap;
+			else nr_cur = &nr;
 			for(int month = 1; month < month2; month++) {
-				nr += daysPerMonth(month, year2);
+				*nr_cur += daysPerMonth(month, year2);
 			}
-			nr += day2 - 1;
-			nr += t2;
+			*nr_cur += day2 - 1;
+			*nr_cur += t2;
 			bool check_aborted = (year2 - year1) > 10000L;
 			Number days_of_years;
-			for(int year = year1; year <= year2; year++) {
+			for(int year = year1 + 1; year < year2; year++) {
 				if(check_aborted && CALCULATOR && CALCULATOR->aborted()) {
 					nr.setPlusInfinity();
 					return nr;
 				}
-				days_of_years += daysPerYear(year, basis);
 				if(year != year1 && year != year2) {
-					nr += daysPerYear(year, basis);
+					if(isLeapYear(year)) nr_leap += daysPerYear(year, basis);
+					else nr += daysPerYear(year, basis);
 				}
 			}
-			days_of_years /= year2 + 1 - year1;
-			nr /= days_of_years;
+			nr_leap /= 366;
+			nr /= 365;
+			nr += nr_leap;
 			if(neg) nr.negate();
 		}
 	} else {

@@ -11,8 +11,15 @@ else
 xml_DATA = $(xml_in_files:.xml.in=.xml) eurofxref-daily.xml rates.json
 endif
 
-@INTLTOOL_QALCULATE_DEFINITIONS_RULE@
+if ENABLE_NLS
+%.xml: %.xml.in
+	$(AM_V_GEN)GETTEXTDATADIRS=$(srcdir) GETTEXTDATADIR=$(srcdir) $(MSGFMT) --xml -L QALCULATE --template $< -d $(top_builddir)/po-defs-fixed/fixed -o $@
+else
+%.xml: %.xml.in
+	cp $< $@
+endif
 
-EXTRA_DIST = \
-	$(xml_in_files) $(xml_DATA) $(noinst_DATA)
+EXTRA_DIST = $(xml_in_files) eurofxref-daily.xml rates.json its/qalculate.its its/qalculate.loc
+
+DISTCLEANFILES = $(xml_in_files:.xml.in=.xml)
 

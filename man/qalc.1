@@ -576,6 +576,9 @@ If activated, binary prefixes are used by default for information units.
 Enables automatic conversion to the local currency when optimal unit conversion is enabled.
 .PP
 .TP 8
+.B default currency, currency
+.PP
+.TP 8
 .B denominator prefixes, denpref \fI(on*, off)\fP
 Enables automatic use of prefixes in the denominator of unit expressions.
 .PP
@@ -612,6 +615,10 @@ Activates continuous calculation of the currently edited expression.
 Do not save expression history on exit.
 .PP
 .TP 8
+.B completion \fI(0 = off, 1* = select multiple, 2 = select, 3 = list multiple, 4 = list)\fP
+Determines completion action when pressing tab key. "select" shows a numbered list of matches and waits for an item to be selected by entering a number, while "list" returns directly to the expression without input. "select multiple" and "list multiple" completes the word directly if there is only one match.
+.PP
+.TP 8
 .B ignore locale \fI(yes, no*)\fP
 Ignore system language and use English (requires restart).
 .PP
@@ -624,6 +631,10 @@ Ignore system language and use English (requires restart).
 .TP 8
 .B rpn \fI(on, off*)\fP
 Activates the Reverse Polish Notation stack.
+.PP
+.TP 8
+.B save config \fI(yes*, no)\fP
+If disabled qalc.cfg is never automatically updated.
 .PP
 .TP 8
 .B save definitions \fI(yes*, no)\fP
@@ -737,7 +748,7 @@ The evaluation of \fIshort/implicit multiplication\fP without any multiplication
 .PP
 In \fIchain mode\fP, expressions are calculated from left to right, ignoring standard order of operations, like the immediate execution mode of a traditional calculator (1+2*3 = (1+2)*3 = 9).
 .PP
-The \fI"to"-operator\fP is used for unit conversion and manipulation of how the result is presented. Place " to " or a right arrow (e.g. "->") followed by one of expressions/commands listed below, at the end of an expression.
+The \fI"to"-operator\fP is used for unit conversion and manipulation of how the result is presented. Place " to " or a right arrow (e.g. "->", but not ">") followed by one of expressions/commands listed below, at the end of an expression.
 .PP
 .TP 8
 .B Unit conversion
@@ -823,6 +834,14 @@ prepend with + or - to force/disable use of mixed units
 - 1/# (show as mixed fraction with specified denominator)
 .br
 prepend with - to show as simple fraction
+.PP
+.TP 8
+.B Scientific notation
+- sci, scientific (show result with scientific notation)
+.br
+- eng, engineering (show result with engineering notation)
+.br
+- simple (show result with non-scientific notation)
 .PP
 .TP 8
 .B Other conversion commands

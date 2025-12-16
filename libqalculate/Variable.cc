@@ -288,6 +288,8 @@ KnownVariable::KnownVariable(string cat_, string name_, string expression_, stri
 KnownVariable::KnownVariable() : Variable() {
 	mstruct = NULL; mstruct_alt = NULL;
 	b_expression = true;
+	b_relative_uncertainty = false;
+	calculated_precision = -1;
 }
 KnownVariable::KnownVariable(const KnownVariable *variable) {
 	mstruct = NULL; mstruct_alt = NULL;
@@ -663,7 +665,7 @@ void NowVariable::calculate(MathStructure &m) const {
 
 #include <fstream>
 
-void UptimeVariable:: calculate(MathStructure &m) const {
+void UptimeVariable::calculate(MathStructure &m) const {
 #ifndef DISABLE_INSECURE
 	Number nr;
 #	ifdef __linux__
@@ -682,6 +684,11 @@ void UptimeVariable:: calculate(MathStructure &m) const {
 	nr += (long int) (i_uptime / 1000);
 #	endif
 	m = nr;
+	Unit *u = CALCULATOR->getUnit("s");
+	if(u) m *= u;
+#else
+	CALCULATOR->error(true, _("%s is disabled when %s is compiled with \"%s\" configure option."), name().c_str(), "libqalculate", "--disable-insecure", NULL);
+	m = nr_zero;
 	Unit *u = CALCULATOR->getUnit("s");
 	if(u) m *= u;
 #endif

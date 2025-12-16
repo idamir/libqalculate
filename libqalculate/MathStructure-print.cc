@@ -2947,6 +2947,47 @@ void MathStructure::formatsub(const PrintOptions &po, MathStructure *parent, siz
 			}
 			break;
 		}
+		case STRUCT_VECTOR: {
+			if(po.preserve_format) break;
+			if(isMatrix()) {
+				if(rows() == 1) {
+					setToChild(1, true);
+					return formatsub(po, parent, pindex, recursive, top_parent);
+				}
+			} else if(SIZE > 100) {
+				bool b = true;
+				for(size_t i = 0; i < SIZE; i++) {
+					if(!CHILD(i).isNumber() || !CHILD(i).number().isRational()) {
+						b = false;
+						break;
+					}
+				}
+				if(!b) break;
+				Number ndiff(CHILD(1).number());
+				ndiff -= CHILD(0).number();
+				Number nr(CHILD(1).number());
+				for(size_t i = 2; i < SIZE; i++) {
+					nr += ndiff;
+					if(CALCULATOR->aborted() || CHILD(i).number() != nr) {
+						b = false;
+						break;
+					}
+				}
+				if(!b) break;
+				MathFunction *f = CALCULATOR->getFunctionById(FUNCTION_ID_COLON);
+				if(!f) break;
+				MathStructure mbegin(CHILD(0)), mend(LAST);
+				if(ndiff.isOne()) {
+					set(f, &mbegin, &mend, &m_undefined, NULL);
+				} else {
+					MathStructure mdiff(ndiff);
+					set(f, &mbegin, &mdiff, &mend, NULL);
+				}
+			} else if(SIZE == 1 && (!parent || !parent->isMatrix())) {
+				setToChild(1, true);
+			}
+			break;
+		}
 		default: {}
 	}
 }
@@ -3306,7 +3347,7 @@ bool MathStructure::needsParenthesis(const PrintOptions &po, const InternalPrint
 					}
 					case '\'': {
 						if(in_cit2) in_cit2 = false;
-						else if(!in_cit1) in_cit1 = true;
+						else if(!in_cit1) in_cit2 = true;
 						break;
 					}
 					default: {
@@ -4442,7 +4483,17 @@ string MathStructure::print(const PrintOptions &po, bool format, int colorize, i
 		case STRUCT_FUNCTION: {
 			if(SIZE < 2 || (o_function->id() != FUNCTION_ID_HORZCAT && o_function->id() != FUNCTION_ID_VERTCAT) || !CALCULATOR->usesMatlabStyleMatrices()) {
 				ips_n.depth++;
-				if(o_function->id() == FUNCTION_ID_PARALLEL && SIZE >= 2) {
+				if(o_function->id() == FUNCTION_ID_COLON && SIZE == 3 && CALCULATOR->usesMatlabStyleMatrices() && !po.preserve_format) {
+					print_str += LEFT_VECTOR_WRAP_CH;
+					for(size_t i = 0; i < 3; i++) {
+						if(i == 2 && CHILD(i).isUndefined()) break;
+						if(i > 0) print_str += ":";
+						ips_n.wrap = CHILD(i).needsParenthesis(po, ips_n, m_empty_vector, i + 1, true, flat_power);
+						print_str += CHILD(i).print(po, format, colorize, tagtype, ips_n);
+					}
+					print_str += RIGHT_VECTOR_WRAP_CH;
+					break;
+				} else if(o_function->id() == FUNCTION_ID_PARALLEL && SIZE >= 2) {
 					for(size_t i = 0; i < SIZE; i++) {
 						if(CALCULATOR->aborted()) return CALCULATOR->abortedMessage();
 						if(i > 0) {
@@ -4547,7 +4598,7 @@ string MathStructure::print(const PrintOptions &po, bool format, int colorize, i
 						PrintOptions po2 = po;
 						po2.show_ending_zeroes = false;
 						print_str += CHILD(i).print(po2, format, colorize, tagtype, ips_n);
-					} else if(po.preserve_format && o_function->id() == FUNCTION_ID_LOGN && i == 0 && argcount >= 2 && CHILD(i).type() == STRUCT_UNDEFINED) {
+					} else if(o_function->id() == FUNCTION_ID_LOGN && i == 0 && argcount >= 2 && CHILD(i).type() == STRUCT_UNDEFINED) {
 						// 2nd argument before parenthesis and input of 1st argument not begun
 					} else {
 						print_str += CHILD(i).print(po, format, colorize, tagtype, ips_n);

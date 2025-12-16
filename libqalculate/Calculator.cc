@@ -171,9 +171,15 @@ Calculator::Calculator() {
 		if(GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &nlang, NULL, &n)) {
 			WCHAR* wlocale = new WCHAR[n];
 			if(GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &nlang, wlocale, &n)) {
+				for(size_t i = 2; nlang > 1 && i < n - 1; i++) {
+					if(wlocale[i] == '\0') {
+						if(wlocale[i + 1] == '\0') break;
+						wlocale[i] = ':';
+						nlang--;
+					}
+				}
 				string lang = utf8_encode(wlocale);
 				gsub("-", "_", lang);
-				if(lang.length() > 5) lang = lang.substr(0, 5);
 				if(!lang.empty()) _putenv_s("LANGUAGE", lang.c_str());
 			}
 			delete[] wlocale;
@@ -199,8 +205,10 @@ Calculator::Calculator() {
 	priv->temperature_calculation = TEMPERATURE_CALCULATION_HYBRID;
 	priv->matlab_matrices = true;
 	priv->persistent_plot = false;
+	priv->can_plot = -1;
 	priv->concise_uncertainty_input = false;
 	priv->fixed_denominator = 2;
+	priv->definitions_locale_set = false;
 
 #ifdef HAVE_ICU
 	UErrorCode err = U_ZERO_ERROR;
@@ -210,13 +218,13 @@ Calculator::Calculator() {
 	srand(time(NULL));
 
 	exchange_rates_time[0] = 0;
-	exchange_rates_time[1] = (time_t) 487128L * (time_t) 3600;
+	exchange_rates_time[1] = (time_t) 489672L * (time_t) 3600;
 	exchange_rates_time[2] = 0;
-	priv->exchange_rates_time2[0] = (time_t) 487128L * (time_t) 3600;
+	priv->exchange_rates_time2[0] = (time_t) 489672L * (time_t) 3600;
 	exchange_rates_check_time[0] = 0;
-	exchange_rates_check_time[1] = (time_t) 487128L * (time_t) 3600;
+	exchange_rates_check_time[1] = (time_t) 489672L * (time_t) 3600;
 	exchange_rates_check_time[2] = 0;
-	priv->exchange_rates_check_time2[0] = (time_t) 487128L * (time_t) 3600;
+	priv->exchange_rates_check_time2[0] = (time_t) 489672L * (time_t) 3600;
 	b_exchange_rates_warning_enabled = true;
 	b_exchange_rates_used = 0;
 	priv->exchange_rates_url3 = 0;
@@ -259,6 +267,8 @@ Calculator::Calculator() {
 	addStringAlternative("∨", BITWISE_OR);
 	addStringAlternative("¬", BITWISE_NOT);
 	addStringAlternative("…", "...");
+	addStringAlternative("{", "(");
+	addStringAlternative("}", ")");
 
 	//division operator
 	per_str = _("per");
@@ -365,9 +375,11 @@ Calculator::Calculator() {
 	save_printoptions.limit_implicit_multiplication = true;
 	save_printoptions.spacious = false;
 	save_printoptions.number_fraction_format = FRACTION_FRACTIONAL;
+	save_printoptions.restrict_fraction_length = true;
 	save_printoptions.short_multiplication = false;
-	save_printoptions.show_ending_zeroes = false;
+	save_printoptions.show_ending_zeroes = true;
 	save_printoptions.use_unit_prefixes = false;
+	save_printoptions.min_exp = 10;
 
 	message_printoptions.interval_display = INTERVAL_DISPLAY_PLUSMINUS;
 	message_printoptions.spell_out_logical_operators = true;
@@ -385,8 +397,8 @@ Calculator::Calculator() {
 	priv->simplified_percentage_used = false;
 	b_save_called = false;
 
-	ILLEGAL_IN_NAMES = "\a\b" + DOT_S + RESERVED OPERATORS SEXADOT SPACES PARENTHESISS VECTOR_WRAPS COMMAS;
-	ILLEGAL_IN_NAMES_MINUS_SPACE_STR = "\a\b" + DOT_S + RESERVED OPERATORS SEXADOT PARENTHESISS VECTOR_WRAPS COMMAS;
+	ILLEGAL_IN_NAMES = "\a\b" + DOT_S + RESERVED OPERATORS SEXADOT SPACES PARENTHESISS VECTOR_WRAPS COMMAS INTERNAL_ID_LR;
+	ILLEGAL_IN_NAMES_MINUS_SPACE_STR = "\a\b" + DOT_S + RESERVED OPERATORS SEXADOT PARENTHESISS VECTOR_WRAPS COMMAS INTERNAL_ID_LR;
 	ILLEGAL_IN_UNITNAMES = ILLEGAL_IN_NAMES + NUMBERS;
 	b_argument_errors = true;
 	current_stage = MESSAGE_STAGE_UNSET;
@@ -435,9 +447,15 @@ Calculator::Calculator(bool ignore_locale) {
 			if(GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &nlang, NULL, &n)) {
 				WCHAR* wlocale = new WCHAR[n];
 				if(GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &nlang, wlocale, &n)) {
+					for(size_t i = 2; nlang > 1 && i < n - 1; i++) {
+						if(wlocale[i] == '\0') {
+							if(wlocale[i + 1] == '\0') break;
+							wlocale[i] = ':';
+							nlang--;
+						}
+					}
 					string lang = utf8_encode(wlocale);
 					gsub("-", "_", lang);
-					if(lang.length() > 5) lang = lang.substr(0, 5);
 					if(!lang.empty()) _putenv_s("LANGUAGE", lang.c_str());
 				}
 				delete[] wlocale;
@@ -463,8 +481,10 @@ Calculator::Calculator(bool ignore_locale) {
 	priv->temperature_calculation = TEMPERATURE_CALCULATION_HYBRID;
 	priv->matlab_matrices = true;
 	priv->persistent_plot = false;
+	priv->can_plot = -1;
 	priv->concise_uncertainty_input = false;
 	priv->fixed_denominator = 2;
+	priv->definitions_locale_set = ignore_locale;
 
 #ifdef HAVE_ICU
 	UErrorCode err = U_ZERO_ERROR;
@@ -474,13 +494,13 @@ Calculator::Calculator(bool ignore_locale) {
 	srand(time(NULL));
 
 	exchange_rates_time[0] = 0;
-	exchange_rates_time[1] = (time_t) 487128L * (time_t) 3600;
+	exchange_rates_time[1] = (time_t) 489672L * (time_t) 3600;
 	exchange_rates_time[2] = 0;
-	priv->exchange_rates_time2[0] = (time_t) 487128L * (time_t) 3600;
+	priv->exchange_rates_time2[0] = (time_t) 489672L * (time_t) 3600;
 	exchange_rates_check_time[0] = 0;
-	exchange_rates_check_time[1] = (time_t) 487128L * (time_t) 3600;
+	exchange_rates_check_time[1] = (time_t) 489672L * (time_t) 3600;
 	exchange_rates_check_time[2] = 0;
-	priv->exchange_rates_check_time2[0] = (time_t) 487128L * (time_t) 3600;
+	priv->exchange_rates_check_time2[0] = (time_t) 489672L * (time_t) 3600;
 	b_exchange_rates_warning_enabled = true;
 	b_exchange_rates_used = 0;
 	priv->exchange_rates_url3 = 0;
@@ -523,6 +543,8 @@ Calculator::Calculator(bool ignore_locale) {
 	addStringAlternative("∨", BITWISE_OR);
 	addStringAlternative("¬", BITWISE_NOT);
 	addStringAlternative("…", "...");
+	addStringAlternative("{", "(");
+	addStringAlternative("}", ")");
 
 	per_str = _("per");
 	per_str_len = per_str.length();
@@ -622,10 +644,12 @@ Calculator::Calculator(bool ignore_locale) {
 	save_printoptions.interval_display = INTERVAL_DISPLAY_INTERVAL;
 	save_printoptions.limit_implicit_multiplication = true;
 	save_printoptions.spacious = false;
+	save_printoptions.restrict_fraction_length = true;
 	save_printoptions.number_fraction_format = FRACTION_FRACTIONAL;
 	save_printoptions.short_multiplication = false;
-	save_printoptions.show_ending_zeroes = false;
+	save_printoptions.show_ending_zeroes = true;
 	save_printoptions.use_unit_prefixes = false;
+	save_printoptions.min_exp = 10;
 
 	message_printoptions.interval_display = INTERVAL_DISPLAY_PLUSMINUS;
 	message_printoptions.spell_out_logical_operators = true;
@@ -643,8 +667,8 @@ Calculator::Calculator(bool ignore_locale) {
 	priv->simplified_percentage_used = false;
 	b_save_called = false;
 
-	ILLEGAL_IN_NAMES = "\a\b" + DOT_S + RESERVED OPERATORS SEXADOT SPACES PARENTHESISS VECTOR_WRAPS COMMAS;
-	ILLEGAL_IN_NAMES_MINUS_SPACE_STR = "\a\b" + DOT_S + RESERVED OPERATORS SEXADOT PARENTHESISS VECTOR_WRAPS COMMAS;
+	ILLEGAL_IN_NAMES = "\a\b" + DOT_S + RESERVED OPERATORS SEXADOT SPACES PARENTHESISS VECTOR_WRAPS COMMAS INTERNAL_ID_LR;
+	ILLEGAL_IN_NAMES_MINUS_SPACE_STR = "\a\b" + DOT_S + RESERVED OPERATORS SEXADOT PARENTHESISS VECTOR_WRAPS COMMAS INTERNAL_ID_LR;
 	ILLEGAL_IN_UNITNAMES = ILLEGAL_IN_NAMES + NUMBERS;
 	b_argument_errors = true;
 	current_stage = MESSAGE_STAGE_UNSET;
@@ -1670,11 +1694,9 @@ void Calculator::addBuiltinVariables() {
 	v_yesterday = (KnownVariable*) addVariable(new YesterdayVariable());
 	v_tomorrow = (KnownVariable*) addVariable(new TomorrowVariable());
 	v_now = (KnownVariable*) addVariable(new NowVariable());
-#ifndef DISABLE_INSECURE
 #if 	defined __linux__ || defined _WIN32
 	addVariable(new UptimeVariable());
 #	endif
-#endif
 
 }
 
@@ -1690,6 +1712,7 @@ void Calculator::addBuiltinFunctions() {
 	f_matrix = addFunction(new MatrixFunction());
 	f_matrix_to_vector = addFunction(new MatrixToVectorFunction());
 	f_area = addFunction(new AreaFunction());
+	priv->f_replace_part = addFunction(new ReplacePartFunction());
 	f_rows = addFunction(new RowsFunction());
 	f_columns = addFunction(new ColumnsFunction());
 	f_row = addFunction(new RowFunction());
@@ -1717,6 +1740,8 @@ void Calculator::addBuiltinFunctions() {
 	priv->f_horzcat = addFunction(new HorzCatFunction());
 	addFunction(new KroneckerProductFunction());
 	addFunction(new FlipFunction());
+	addFunction(new CircShiftFunction());
+	addFunction(new ReshapeFunction());
 
 	f_factorial = addFunction(new FactorialFunction());
 	f_factorial2 = addFunction(new DoubleFactorialFunction());
@@ -1911,20 +1936,13 @@ void Calculator::addBuiltinFunctions() {
 	addFunction(new ForEachFunction());
 
 	f_save = addFunction(new SaveFunction());
-#ifndef DISABLE_INSECURE
 	f_load = addFunction(new LoadFunction());
 	f_export = addFunction(new ExportFunction());
-#else
-	f_load = NULL;
-	f_export = NULL;
-#endif
 
 	f_register = addFunction(new RegisterFunction());
 	f_stack = addFunction(new StackFunction());
 
-#ifndef DISABLE_INSECURE
 	addFunction(new CommandFunction());
-#endif
 
 	f_diff = addFunction(new DeriveFunction());
 	f_integrate = addFunction(new IntegrateFunction());
@@ -1952,8 +1970,7 @@ void Calculator::addBuiltinFunctions() {
 
 	addFunction(new GeographicDistanceFunction());
 
-	if(canPlot()) f_plot = addFunction(new PlotFunction());
-	else f_plot = NULL;
+	f_plot = addFunction(new PlotFunction());
 
 	/*void *plugin = dlopen("", RTLD_NOW);
 	if(plugin) {
@@ -1971,11 +1988,11 @@ void Calculator::addBuiltinFunctions() {
 }
 void Calculator::addBuiltinUnits() {
 	u_euro = addUnit(new Unit(_("Currency"), "EUR", "euros", "euro", "European Euros", false, true, true));
-	u_btc = addUnit(new AliasUnit(_("Currency"), "BTC", "bitcoins", "bitcoin", "Bitcoins", u_euro, "101634", 1, "", false, true, true));
+	u_btc = addUnit(new AliasUnit(_("Currency"), "BTC", "bitcoins", "bitcoin", "Bitcoins", u_euro, "91712.4", 1, "", false, true, true));
 	u_btc->setApproximate();
 	u_btc->setPrecision(-2);
 	u_btc->setChanged(false);
-	priv->u_byn = addUnit(new AliasUnit(_("Currency"), "BYN", "", "", "Belarusian Ruble", u_euro, "1/3.85001", 1, "", false, true, true));
+	priv->u_byn = addUnit(new AliasUnit(_("Currency"), "BYN", "", "", "Belarusian Ruble", u_euro, "1/3.94102", 1, "", false, true, true));
 	priv->u_byn->setHidden(true);
 	priv->u_byn->setApproximate();
 	priv->u_byn->setPrecision(-2);
@@ -2757,6 +2774,8 @@ MathFunction* Calculator::getFunctionById(int id) const {
 		case FUNCTION_ID_NEWTON_RAPHSON: {return priv->f_newton;}
 		case FUNCTION_ID_RAND: {return f_rand;}
 		case FUNCTION_ID_ELEMENT: {return f_element;}
+		case FUNCTION_ID_REPLACE_PART: {return priv->f_replace_part;}
+		case FUNCTION_ID_COLON: {return priv->f_colon;}
 	}
 	unordered_map<int, MathFunction*>::iterator it = priv->id_functions.find(id);
 	if(it == priv->id_functions.end()) return NULL;

@@ -499,18 +499,18 @@ MathStructure &AliasUnit::convertFromFirstBaseUnit(MathStructure &mvalue, MathSt
 	if(inverseExpression().empty()) {
 		if(svalue.find("\\x") != string::npos) {
 			string stmp = svalue;
-			string stmp2 = LEFT_PARENTHESIS ID_WRAP_LEFT;
+			string stmp2 = LEFT_PARENTHESIS INTERNAL_ID_L;
 			int x_id = CALCULATOR->addId(new MathStructure(mvalue), true);
 			stmp2 += i2s(x_id);
-			stmp2 += ID_WRAP_RIGHT RIGHT_PARENTHESIS;
+			stmp2 += INTERNAL_ID_R RIGHT_PARENTHESIS;
 			gsub("\\x", stmp2, stmp);
-			stmp2 = LEFT_PARENTHESIS ID_WRAP_LEFT;
+			stmp2 = LEFT_PARENTHESIS INTERNAL_ID_L;
 			int y_id = -1;
 			if(svalue.find("\\y") != string::npos) {
-				stmp2 = LEFT_PARENTHESIS ID_WRAP_LEFT;
+				stmp2 = LEFT_PARENTHESIS INTERNAL_ID_L;
 				y_id = CALCULATOR->addId(new MathStructure(mexp), true);
 				stmp2 += i2s(y_id);
-				stmp2 += ID_WRAP_RIGHT RIGHT_PARENTHESIS;
+				stmp2 += INTERNAL_ID_R RIGHT_PARENTHESIS;
 				gsub("\\y", stmp2, stmp);
 			}
 			CALCULATOR->parse(&mvalue, stmp, po);
@@ -583,17 +583,17 @@ MathStructure &AliasUnit::convertFromFirstBaseUnit(MathStructure &mvalue, MathSt
 	} else {
 		if(sinverse.find("\\x") != string::npos) {
 			string stmp = sinverse;
-			string stmp2 = LEFT_PARENTHESIS ID_WRAP_LEFT;
+			string stmp2 = LEFT_PARENTHESIS INTERNAL_ID_L;
 			int x_id = CALCULATOR->addId(new MathStructure(mvalue), true);
 			stmp2 += i2s(x_id);
-			stmp2 += ID_WRAP_RIGHT RIGHT_PARENTHESIS;
+			stmp2 += INTERNAL_ID_R RIGHT_PARENTHESIS;
 			gsub("\\x", stmp2, stmp);
 			int y_id = -1;
 			if(svalue.find("\\y") != string::npos) {
-				stmp2 = LEFT_PARENTHESIS ID_WRAP_LEFT;
+				stmp2 = LEFT_PARENTHESIS INTERNAL_ID_L;
 				y_id = CALCULATOR->addId(new MathStructure(mexp), true);
 				stmp2 += i2s(y_id);
-				stmp2 += ID_WRAP_RIGHT RIGHT_PARENTHESIS;
+				stmp2 += INTERNAL_ID_R RIGHT_PARENTHESIS;
 				gsub("\\y", stmp2, stmp);
 			}
 			CALCULATOR->parse(&mvalue, stmp, po);
@@ -654,17 +654,17 @@ MathStructure &AliasUnit::convertToFirstBaseUnit(MathStructure &mvalue, MathStru
 	}
 	if(svalue.find("\\x") != string::npos) {
 		string stmp = svalue;
-		string stmp2 = LEFT_PARENTHESIS ID_WRAP_LEFT;
+		string stmp2 = LEFT_PARENTHESIS INTERNAL_ID_L;
 		int x_id = CALCULATOR->addId(new MathStructure(mvalue), true);
 		int y_id = -1;
 		stmp2 += i2s(x_id);
-		stmp2 += ID_WRAP_RIGHT RIGHT_PARENTHESIS;
+		stmp2 += INTERNAL_ID_R RIGHT_PARENTHESIS;
 		gsub("\\x", stmp2, stmp);
 		if(svalue.find("\\y") != string::npos) {
-			stmp2 = LEFT_PARENTHESIS ID_WRAP_LEFT;
+			stmp2 = LEFT_PARENTHESIS INTERNAL_ID_L;
 			y_id = CALCULATOR->addId(new MathStructure(mexp), true);
 			stmp2 += i2s(y_id);
-			stmp2 += ID_WRAP_RIGHT RIGHT_PARENTHESIS;
+			stmp2 += INTERNAL_ID_R RIGHT_PARENTHESIS;
 			gsub("\\y", stmp2, stmp);
 		}
 		CALCULATOR->parse(&mvalue, stmp, po);
@@ -1314,6 +1314,7 @@ bool replace_variables(MathStructure &m) {
 			if(m.variable()->referenceName() == "bohr_radius") u = CALCULATOR->getActiveUnit("bohr_unit");
 			else if(m.variable()->referenceName() == "elementary_charge") u = CALCULATOR->getActiveUnit("e_unit");
 			else if(m.variable()->referenceName() == "electron_mass") u = CALCULATOR->getActiveUnit("electron_unit");
+			else if(m.variable()->referenceName() == "compton_wavelength_2pi") u = CALCULATOR->getActiveUnit("l_N");
 		}
 		if(u) {
 			m.set(u, true);
@@ -1353,9 +1354,14 @@ void CompositeUnit::setBaseExpression(string base_expression_) {
 	}
 	remove_times_one(mstruct);
 	fix_division(mstruct, eo);
-	bool b_eval = !is_unit_multiexp(mstruct);
+	bool b_eval = !is_unit_multiexp(mstruct) && mstruct.containsType(STRUCT_UNIT, false, true, true) != 0 && !mstruct.containsFunctionId(FUNCTION_ID_PLOT) && !mstruct.containsFunctionId(FUNCTION_ID_COMMAND) && !mstruct.containsFunctionId(FUNCTION_ID_EXPORT) && !mstruct.containsFunctionId(FUNCTION_ID_SAVE);
 	while(true) {
-		if(b_eval) mstruct.eval(eo);
+		if(b_eval) {
+			bool b_c = CALCULATOR->isControlled();
+			if(!b_c) CALCULATOR->startControl(100);
+			mstruct.eval(eo);
+			if(!b_c) CALCULATOR->stopControl();
+		}
 		if(mstruct.isUnit()) {
 			add(mstruct.unit(), 1, mstruct.prefix());
 		} else if(mstruct.isPower() && mstruct[0].isUnit() && mstruct[1].isInteger()) {
@@ -1383,7 +1389,7 @@ void CompositeUnit::setBaseExpression(string base_expression_) {
 		} else {
 			had_errors = true;
 		}
-		if(had_errors && !b_eval) {
+		if(had_errors && !b_eval && mstruct.containsType(STRUCT_UNIT, false, true, true) != 0 && !mstruct.containsFunctionId(FUNCTION_ID_PLOT) && !mstruct.containsFunctionId(FUNCTION_ID_COMMAND) && !mstruct.containsFunctionId(FUNCTION_ID_EXPORT) && !mstruct.containsFunctionId(FUNCTION_ID_SAVE)) {
 			had_errors = false;
 			b_eval = true;
 			clear();

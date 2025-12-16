@@ -16,6 +16,7 @@
 #include "util.h"
 #include "MathStructure.h"
 #include "MathStructure-support.h"
+#include "Variable.h"
 
 #include <locale.h>
 #ifdef _MSC_VER
@@ -44,6 +45,10 @@ PlotParameters::PlotParameters() {
 	x_log = false;
 	y_log_base = 10;
 	x_log_base = 10;
+	y_min = 0;
+	y_max = 10;
+	x_min = 0;
+	x_max = 10;
 	grid = false;
 	color = true;
 	linewidth = -1;
@@ -60,15 +65,16 @@ PlotDataParameters::PlotDataParameters() {
 
 bool Calculator::canPlot() {
 #ifdef HAVE_GNUPLOT_CALL
+	if(priv->can_plot >= 0) return priv->can_plot;
 #	ifdef _WIN32
 	LPSTR lpFilePart;
 	char filename[MAX_PATH];
-	return SearchPath(NULL, "gnuplot", ".exe", MAX_PATH, filename, &lpFilePart);
+	priv->can_plot = SearchPath(NULL, "gnuplot", ".exe", MAX_PATH, filename, &lpFilePart) > 0;
 #	else
 	FILE *pipe = popen("gnuplot - 2>/dev/null", "w");
-	if(!pipe) return false;
-	return pclose(pipe) == 0;
+	priv->can_plot = (pipe != NULL) && (pclose(pipe) == 0);
 #	endif
+	return priv->can_plot;
 #else
 #	ifdef HAVE_BYO_GNUPLOT
 	return true;
@@ -78,18 +84,58 @@ bool Calculator::canPlot() {
 #endif
 }
 
-void parse_and_precalculate_plot(string &expression, MathStructure &mstruct, const ParseOptions &po, EvaluationOptions &eo) {
+void parse_and_precalculate_plot(const string &expression, const string &x_var, MathStructure &mstruct, MathStructure &x_mstruct, const MathStructure *min, const MathStructure *max, const ParseOptions &po, EvaluationOptions &eo) {
 	eo.approximation = APPROXIMATION_APPROXIMATE;
 	ParseOptions po2 = po;
 	po2.read_precision = DONT_READ_PRECISION;
 	eo.parse_options = po2;
 	eo.interval_calculation = INTERVAL_CALCULATION_NONE;
+	UnknownVariable *tmp_v = NULL;
+	CALCULATOR->beginTemporaryStopMessages();
 	mstruct = CALCULATOR->parse(expression, po2);
+	if(x_var.length() > 1 && x_var[0] == '\\') {
+		x_mstruct.set(x_var.substr(1), true);
+	} else if(x_var.length() > 2 && (x_var[0] == '\'' || x_var[0] == '\"') && x_var.find(x_var[0], 1) == x_var.length() - 1) {
+		x_mstruct.set(x_var.substr(1, x_var.length() - 2), true);
+	} else {
+		Variable *v = CALCULATOR->getActiveVariable(x_var);
+		if(v) {
+			x_mstruct = v;
+		} else {
+			x_mstruct.set(x_var, true);
+			if(mstruct.contains(x_mstruct, true, true) <= 0 && CALCULATOR->variableNameIsValid(x_var)) {
+				tmp_v = new UnknownVariable(CALCULATOR->temporaryCategory(), x_var);
+				CALCULATOR->addVariable(tmp_v, true);
+				x_mstruct = tmp_v;
+				mstruct = CALCULATOR->parse(expression, po2);
+			}
+		}
+	}
+	if(!tmp_v) {
+		CALCULATOR->endTemporaryStopMessages(true);
+		tmp_v = new UnknownVariable(CALCULATOR->temporaryCategory(), x_var);
+		mstruct.replace(x_mstruct, tmp_v);
+	}
+	if(tmp_v) {
+		if(min && max && min->isNumber() && max->isNumber()) {
+			Number nr;
+			nr.setInterval(min->number(), max->number());
+			tmp_v->setInterval(nr);
+		} else {
+			tmp_v->setAssumptions(new Assumptions);
+		}
+
+	}
 	MathStructure mbak(mstruct);
 	eo.calculate_functions = false;
 	eo.expand = false;
 	CALCULATOR->beginTemporaryStopMessages();
 	mstruct.eval(eo);
+	if(tmp_v) {
+		mstruct.replace(x_mstruct, tmp_v);
+		x_mstruct = tmp_v;
+		tmp_v->destroy();
+	}
 	int im = 0;
 	if(CALCULATOR->endTemporaryStopMessages(NULL, &im) > 0 || im > 0) mstruct = mbak;
 	eo.calculate_functions = true;
@@ -100,16 +146,13 @@ MathStructure Calculator::expressionToPlotVector(string expression, const MathSt
 	return expressionToPlotVector(expression, min, max, steps, true, x_vector, x_var, po, msecs);
 }
 MathStructure Calculator::expressionToPlotVector(string expression, const MathStructure &min, const MathStructure &max, int steps, bool separate_complex_part, MathStructure *x_vector, string x_var, const ParseOptions &po, int msecs) {
-	Variable *v = getActiveVariable(x_var);
 	MathStructure x_mstruct;
-	if(v) x_mstruct = v;
-	else x_mstruct = x_var;
 	EvaluationOptions eo;
 	eo.allow_complex = separate_complex_part;
 	MathStructure mparse;
 	if(msecs > 0) startControl(msecs);
 	beginTemporaryStopIntervalArithmetic();
-	parse_and_precalculate_plot(expression, mparse, po, eo);
+	parse_and_precalculate_plot(expression, x_var, mparse, x_mstruct, &min, &max, po, eo);
 	beginTemporaryStopMessages();
 	MathStructure x_v;
 	MathStructure y_vector;
@@ -136,16 +179,13 @@ MathStructure Calculator::expressionToPlotVector(string expression, const MathSt
 	return expressionToPlotVector(expression, min, max, step, true, x_vector, x_var, po, msecs);
 }
 MathStructure Calculator::expressionToPlotVector(string expression, const MathStructure &min, const MathStructure &max, const MathStructure &step, bool separate_complex_part, MathStructure *x_vector, string x_var, const ParseOptions &po, int msecs) {
-	Variable *v = getActiveVariable(x_var);
 	MathStructure x_mstruct;
-	if(v) x_mstruct = v;
-	else x_mstruct = x_var;
 	EvaluationOptions eo;
 	eo.allow_complex = separate_complex_part;
 	MathStructure mparse;
 	if(msecs > 0) startControl(msecs);
 	beginTemporaryStopIntervalArithmetic();
-	parse_and_precalculate_plot(expression, mparse, po, eo);
+	parse_and_precalculate_plot(expression, x_var, mparse, x_mstruct, &min, &max, po, eo);
 	beginTemporaryStopMessages();
 	MathStructure x_v;
 	MathStructure y_vector;
@@ -169,15 +209,12 @@ MathStructure Calculator::expressionToPlotVector(string expression, float min, f
 	return y_vector;
 }
 MathStructure Calculator::expressionToPlotVector(string expression, const MathStructure &x_vector, string x_var, const ParseOptions &po, int msecs) {
-	Variable *v = getActiveVariable(x_var);
 	MathStructure x_mstruct;
-	if(v) x_mstruct = v;
-	else x_mstruct = x_var;
 	EvaluationOptions eo;
 	MathStructure mparse;
 	if(msecs > 0) startControl(msecs);
 	beginTemporaryStopIntervalArithmetic();
-	parse_and_precalculate_plot(expression, mparse, po, eo);
+	parse_and_precalculate_plot(expression, x_var, mparse, x_mstruct, NULL, NULL, po, eo);
 	beginTemporaryStopMessages();
 	MathStructure y_vector(mparse.generateVector(x_mstruct, x_vector, eo).eval(eo));
 	endTemporaryStopMessages();

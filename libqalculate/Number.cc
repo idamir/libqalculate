@@ -1602,16 +1602,21 @@ void Number::splitInterval(unsigned int nr_of_parts, vector<Number> &v) const {
 	}
 }
 bool Number::getCentralInteger(Number &nr_int, bool *b_multiple, vector<Number> *v) const {
-	if(!isInterval() || !isReal()) {
-		if(b_multiple) {
-			if(imaginaryPartIsNonZero()) {
-				*b_multiple = false;
-			} else if(includesInfinity()) {
-				*b_multiple = true;
-			} else {
-				Number nr;
-				realPart().getCentralInteger(nr, b_multiple);
-			}
+	if(!isReal()) {
+		if(imaginaryPartIsNonZero()) {
+			if(b_multiple) *b_multiple = false;
+			return false;
+		} else if(includesInfinity()) {
+			if(b_multiple) *b_multiple = true;
+			return false;
+		}
+		return realPart().getCentralInteger(nr_int, b_multiple);
+	} else if(!isInterval()) {
+		if(b_multiple) *b_multiple = false;
+		if(isInteger()) {
+			nr_int.setInternal(mpq_numref(r_value));
+			if(v) v->push_back(nr_int);
+			return true;
 		}
 		return false;
 	}
@@ -6305,7 +6310,7 @@ bool Number::airy() {
 	return true;
 }
 bool Number::besselj(const Number &o) {
-	if(hasImaginaryPart() || !o.isInteger()) return false;
+	if(hasImaginaryPart() || !o.isInteger() || CALCULATOR->aborted()) return false;
 	if(isZero()) {
 		if(o.isZero()) set(1, 1, 0, true);
 		else clear(true);
@@ -6337,20 +6342,25 @@ bool Number::besselj(const Number &o) {
 		mpfr_set(fu_test, fu_value, MPFR_RNDN);
 		mpfr_set(fl_test, fl_value, MPFR_RNDN);
 		mpfr_jn(fu_value, n, fu_value, MPFR_RNDU);
+		if(CALCULATOR->aborted()) {mpfr_clears(fu_test, fl_test, NULL); set(nr_bak); return false;}
 		mpfr_jn(fl_value, n, fl_value, MPFR_RNDD);
 		int c1 = mpfr_cmp(fl_value, fu_value);
 		if(c1 > 0) {
+			if(CALCULATOR->aborted()) {mpfr_clears(fu_test, fl_test, NULL); set(nr_bak); return false;}
 			mpfr_jn(fu_value, n, fl_test, MPFR_RNDU);
+			if(CALCULATOR->aborted()) {mpfr_clears(fu_test, fl_test, NULL); set(nr_bak); return false;}
 			mpfr_jn(fl_value, n, fu_test, MPFR_RNDD);
 		}
 		if(!b_iverror && !mpfr_equal_p(fu_test, fl_test)) {
 			mpfr_nextabove(fl_test);
 			if(mpfr_equal_p(fu_test, fl_test)) {
+				if(CALCULATOR->aborted()) {mpfr_clears(fu_test, fl_test, NULL); set(nr_bak); return false;}
 				mpfr_set_prec(fl_test, mpfr_get_prec(fu_test) + 1);
 				mpfr_set(fl_test, fu_test, MPFR_RNDN);
 				mpfr_nextbelow(fl_test);
 				mpfr_set_prec(fu_test, mpfr_get_prec(fl_test));
 				mpfr_jn(fu_test, n, fl_test, MPFR_RNDU);
+				if(CALCULATOR->aborted()) {mpfr_clears(fu_test, fl_test, NULL); set(nr_bak); return false;}
 				if(mpfr_cmp(fu_test, fl_value) < 0) {
 					mpfr_jn(fl_value, n, fl_test, MPFR_RNDD);
 					b_iverror = true;
@@ -6363,6 +6373,7 @@ bool Number::besselj(const Number &o) {
 				mpfr_init2(f_test, mpfr_get_prec(fl_test));
 				mpfr_nextbelow(fl_test);
 				while(true) {
+					if(CALCULATOR->aborted()) {mpfr_clears(fu_test, fl_test, f_test, NULL); set(nr_bak); return false;}
 					mpfr_nextabove(fl_test);
 					if(mpfr_equal_p(fu_test, fl_test)) break;
 					mpfr_jn(f_test, n, fl_test, c1 > 0 ? MPFR_RNDU : MPFR_RNDD);
@@ -6373,6 +6384,7 @@ bool Number::besselj(const Number &o) {
 					}
 				}
 				while(!b_iverror && !mpfr_equal_p(fu_test, fl_test)) {
+					if(CALCULATOR->aborted()) {mpfr_clears(fu_test, fl_test, f_test, NULL); set(nr_bak); return false;}
 					mpfr_nextbelow(fu_test);
 					if(mpfr_equal_p(fu_test, fl_test)) break;
 					mpfr_jn(f_test, n, fu_test, c1 > 0 ? MPFR_RNDD : MPFR_RNDU);
@@ -6395,7 +6407,7 @@ bool Number::besselj(const Number &o) {
 	return true;
 }
 bool Number::bessely(const Number &o) {
-	if(hasImaginaryPart() || !isNonNegative() || !o.isInteger() || isZero()) return false;
+	if(hasImaginaryPart() || !isNonNegative() || !o.isInteger() || isZero() || CALCULATOR->aborted()) return false;
 	if(isPlusInfinity()) {
 		clear(true);
 		return true;
@@ -6423,20 +6435,25 @@ bool Number::bessely(const Number &o) {
 		mpfr_set(fu_test, fu_value, MPFR_RNDN);
 		mpfr_set(fl_test, fl_value, MPFR_RNDN);
 		mpfr_yn(fu_value, n, fu_value, MPFR_RNDU);
+		if(CALCULATOR->aborted()) {mpfr_clears(fu_test, fl_test, NULL); set(nr_bak); return false;}
 		mpfr_yn(fl_value, n, fl_value, MPFR_RNDD);
 		int c1 = mpfr_cmp(fl_value, fu_value);
 		if(c1 > 0) {
+			if(CALCULATOR->aborted()) {mpfr_clears(fu_test, fl_test, NULL); set(nr_bak); return false;}
 			mpfr_yn(fu_value, n, fl_test, MPFR_RNDU);
+			if(CALCULATOR->aborted()) {mpfr_clears(fu_test, fl_test, NULL); set(nr_bak); return false;}
 			mpfr_yn(fl_value, n, fu_test, MPFR_RNDD);
 		}
 		if(!b_iverror && !mpfr_equal_p(fu_test, fl_test)) {
 			mpfr_nextabove(fl_test);
 			if(mpfr_equal_p(fu_test, fl_test)) {
+				if(CALCULATOR->aborted()) {mpfr_clears(fu_test, fl_test, NULL); set(nr_bak); return false;}
 				mpfr_set_prec(fl_test, mpfr_get_prec(fu_test) + 1);
 				mpfr_set(fl_test, fu_test, MPFR_RNDN);
 				mpfr_nextbelow(fl_test);
 				mpfr_set_prec(fu_test, mpfr_get_prec(fl_test));
 				mpfr_yn(fu_test, n, fl_test, MPFR_RNDU);
+				if(CALCULATOR->aborted()) {mpfr_clears(fu_test, fl_test, NULL); set(nr_bak); return false;}
 				if(mpfr_cmp(fu_test, fl_value) < 0) {
 					mpfr_yn(fl_value, n, fl_test, MPFR_RNDD);
 					b_iverror = true;
@@ -6449,6 +6466,7 @@ bool Number::bessely(const Number &o) {
 				mpfr_init2(f_test, mpfr_get_prec(fl_test));
 				mpfr_nextbelow(fl_test);
 				while(true) {
+					if(CALCULATOR->aborted()) {mpfr_clears(fu_test, fl_test, f_test, NULL); set(nr_bak); return false;}
 					mpfr_nextabove(fl_test);
 					if(mpfr_equal_p(fu_test, fl_test)) break;
 					mpfr_yn(f_test, n, fl_test, c1 > 0 ? MPFR_RNDU : MPFR_RNDD);
@@ -6459,6 +6477,7 @@ bool Number::bessely(const Number &o) {
 					}
 				}
 				while(!b_iverror && !mpfr_equal_p(fu_test, fl_test)) {
+					if(CALCULATOR->aborted()) {mpfr_clears(fu_test, fl_test, f_test, NULL); set(nr_bak); return false;}
 					mpfr_nextbelow(fu_test);
 					if(mpfr_equal_p(fu_test, fl_test)) break;
 					mpfr_yn(f_test, n, fu_test, c1 > 0 ? MPFR_RNDD : MPFR_RNDU);
@@ -8307,7 +8326,7 @@ bool Number::igamma(const Number &o) {
 #if MPFR_VERSION_MAJOR < 4
 	return false;
 #else
-	if(!o.isReal() || !isReal() || (!o.isNonZero() && !isNonZero())) return false;
+	if(!o.isReal() || !isReal() || (!o.isNonZero() && !isNonZero()) || !isLessThan(1000000L)) return false;
 	Number nr_bak(*this);
 	if(!setToFloatingPoint()) return false;
 	Number o_float(o);
@@ -10110,11 +10129,12 @@ bool Number::binomial(const Number &m, const Number &k) {
 		clear();
 		return true;
 	}
-	if(m.isZero() || m.equals(k)) {
+	if(m.equals(k) || k.isZero()) {
 		set(1, 1, 0);
 		return true;
 	}
 	if(!mpz_fits_ulong_p(mpq_numref(k.internalRational()))) return false;
+	if((k.integerLength() > 21 || m.integerLength() > 22 * (1 << (21 - k.integerLength()))) && m > k + 1000000L) return false;
 	clear();
 	mpz_bin_ui(mpq_numref(r_value), mpq_numref(m.internalRational()), mpz_get_ui(mpq_numref(k.internalRational())));
 	return true;
@@ -10514,10 +10534,17 @@ string to_float(Number nr_pre, unsigned int bits, unsigned int expbits, unsigned
 			po.rounding = ROUNDING_HALF_TO_EVEN;
 			po.binary_bits = 1;
 			po.base_display = BASE_DISPLAY_NONE;
+			po.decimalpoint_sign = DOT;
 			bool b_approx = false;
 			po.is_approximate = &b_approx;
 			string sfrac = nrfrac.print(po);
 			remove_blanks(sfrac);
+			if(sfrac.length() <= 1 || sfrac.find_first_not_of("10.") != string::npos) {
+				if(!subnormal) return "";
+				sfrac = "0.";
+				nrexp.clear();
+				for(size_t i = expbits + 2; i < bits; i++) sfrac += "0";
+			}
 			if(subnormal && sfrac[0] == '1') {
 				sfrac = "";
 				nrexp = 1;
@@ -11465,9 +11492,11 @@ string Number::print(const PrintOptions &po, const InternalPrintStruct &ips) con
 	// adjust output precision if precision of the number is lower than global precision
 	if(b_approx && i_precision >= 0 && (po.preserve_precision || po.preserve_format || i_precision < precision)) precision = i_precision;
 	// if preserve_precision is true, use full precision
-	else if(b_approx && i_precision < 0 && po.preserve_precision && FROM_BIT_PRECISION(NUMBER_BIT_PRECISION) > precision) precision = FROM_BIT_PRECISION(NUMBER_BIT_PRECISION);
+	else if(i_precision < 0 && po.preserve_precision && FROM_BIT_PRECISION(NUMBER_BIT_PRECISION) > precision) precision = FROM_BIT_PRECISION(NUMBER_BIT_PRECISION);
 	// if preserve_format is true, use full precision - 1 (avoids confusing output)
 	else if(b_approx && i_precision < 0 && po.preserve_format && FROM_BIT_PRECISION(NUMBER_BIT_PRECISION) - 1 > precision) precision = FROM_BIT_PRECISION(NUMBER_BIT_PRECISION) - 1;
+
+	if(po.preserve_precision && !b_approx && i_precision < 0 && precision < 10000) precision = 10000;
 
 	// adjust output precision to precision of parent MathStructure
 	if(po.restrict_to_parent_precision && ips.parent_precision >= 0 && ips.parent_precision < precision) precision = ips.parent_precision;
@@ -11637,6 +11666,14 @@ string Number::print(const PrintOptions &po, const InternalPrintStruct &ips) con
 					if(precexp > precision + prec_add) precexp = precision + prec_add;
 					if(exact && ((expo >= 0 && length - 1 < precexp) || (expo < 0 && expo > -PRECISION))) expo = 0;
 					else expo = length - 1;
+					if(expo == 0 && po.preserve_precision && po.min_exp > 0) {
+						for(long int i = length - 1; i >= 0; i--) {
+							if(mpz_str[i] != '0') {
+								break;
+							}
+							expo++;
+						}
+					}
 				} else {
 					// by default exponent = output string length - 1
 					expo = length - 1;
@@ -12346,6 +12383,14 @@ string Number::print(const PrintOptions &po, const InternalPrintStruct &ips) con
 			precision = (i_precision_base > i_log + 1) ? i_log + 1 : i_precision_base;
 		}
 		i_log -= ((use_max_idp || (po.interval_display != INTERVAL_DISPLAY_PLUSMINUS && po.interval_display != INTERVAL_DISPLAY_CONCISE && po.interval_display != INTERVAL_DISPLAY_RELATIVE) || !is_interval) && po.use_max_decimals && po.max_decimals >= 0 && precision > po.max_decimals + i_log - expo) ? po.max_decimals + i_log - expo : precision - 1;
+#ifdef _WIN32
+		if(i_log >= 323228497L || i_log <= -323228497L) {
+			mpfr_clears(v, f_base, f_mid, NULL);
+			if(i_log > 0) CALCULATOR->error(true, _("Floating point overflow"), NULL);
+			else CALCULATOR->error(true, _("Floating point underflow"), NULL);
+			return CALCULATOR->abortedMessage();
+		}
+#endif
 		l10 = expo - i_log;
 		mpz_t z_log;
 		mpz_init(z_log);

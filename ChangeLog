@@ -1,3 +1,268 @@
+2025-11-14 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Fix default data property argument ("info")
+	* Limit range of arguments in binomial function
+
+2025-11-13 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Show vector, with many elements, in result using colon function when possible
+
+2025-11-10 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Add abortion point in bernoulli function with non-zero second argument
+	* Add abortion point in zeta function with negative integer as first argument and second argument != 1
+
+2025-11-09 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Fix handling of single quotation marks
+	* Limit the range of supported arguments in igamma function to avoid segfault and very slow unabortable calculations
+	* Fix use of options "ignore locale" and "language" in command line arguments
+	* Reduce max argument of nextprime() and prevprime()
+
+2025-11-08 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Show error when plot function is used when Gnuplot is not found or is disabled by "--without-gnuplot-call"
+	* Fix segfault with entrywise operation on a column vector and an empty vector (e.g. "[1; 2].*[]")
+	* Fix segfaults with "{" or "}" in expression (qalc not affected)
+
+2025-11-06 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Add reshape() function
+	* Add warning when matrix/vector has been expanded in slice() or part()
+	* Improve support for multiple preferred languages on Windows
+
+2025-11-01 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Fix compilation without readline
+	* Add circshift and replacePart functions
+	* v[i, ...]=... syntax for assignment of part of matrix/vector variable
+	* Rename and improve area (now "part"), limits ("slice"), and mergevectors ("combine") functions
+	* Improve language handling in definitions files
+
+2025-10-30 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Add default currency option in qalc
+
+2025-10-29 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Limit the range of supported arguments in bessely and besselj functions (to avoid very slow unabortable calculations), and add abortion points
+	* Limit time used for dual calculation with time command line argument to same limit as without
+	* Do not try to calculate exact result with automatic approximation for expressions with iterative functions
+
+2025-10-22 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Fix infinite loop during factorization (e.g. when calculating "base(1234567,x,3)=2^31") on Windows
+
+2025-10-21 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Hide mode string (when show-mode-in-prompt is enabled) when asking for user input
+	* Improve interpretation of function expressions with x, y, and/or z in object names (e.g. "x year"), and/or within quotation marks (e.g. "x*code('x')"), in qalc
+
+2025-10-18 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Avoid "Did you mean..." warning with same original text string as suggested
+
+2025-10-17 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Fix crash after factorization with calculate-as-you-type enabled
+	* Fix segfault with both calculate-as-you-type and RPN mode enabled
+	* Improve support for character encodings other than UTF-8
+
+2025-10-16 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* New completion method which presents a numbered list of matches and lets the user select an item by entering the corresponding number
+	* Completion mode option
+	* Refine completion matching
+	* Hide "101" name variants
+
+2025-10-13 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Show error when function or variable disabled by "--disable-insecure" is used
+	* Fix "make test" (unittest) when compiled with --disable-insecure
+	* Fix matching of multiple words in title
+	* Fix compilation with -fsanitize=undefined
+
+2025-10-09 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Improve speed when performing many multiple calculations read from file (by a factor of about 100 for simple calculations)
+	* Increase responsiveness by decreasing the length of sleep periods (from 10 to 1 ms) while waiting
+	* Improve calculation timer accuracy and add workaround for low time resolution for sleep on Windows
+
+2025-10-08 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Allow any separator before time in date/time value if colon is used, and allow space as separator even if quotation marks are not used
+	* Allow use of Z after date for UTC time (without any time specified)
+	* Do not allow left over characters after date
+	* Fix negative time zone in date and time input
+
+2025-10-07 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Use category and title from existing local variable/function when using "=" for variable/function assignment
+	* Fix output of calculate-as-you-type parsed value (division was displayed using negative exponent) for excluded functions
+	* Do not write unnecessary (de)activate global objects to local definitions
+	* Always include million, thousand, hundred (they are not ambiguous like other large numbers)
+	* Fix make distcheck
+
+2025-10-05 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Move erg/gram from equivalent to absorbed dose category
+	* If last character is a digit, include both letters and numerals in matched word for completion
+	* Fix reference names not used for reference of base units in some cases causing failure to load 13 units with Russian translation
+	* Make astronomical unit symbol case insensitive and use lower-case letters by default ("au")
+
+2025-10-04 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Calculate with interval/uncertainty in where expression even if exact mode
+	* Fix display of "calculate as you type" and "save config" options, and remove duplicate "save mode" on Windows, in mode list
+	* Update names for Loschmidt, Molary volume of ideal gas, and Sackur tetrode constants to improve consistency
+	* Update value of HiggsBoson, quark_c, and quark_t constants
+	* Add StandardGravity_unit name
+	* Minor adjustment to Fine-Structure and Rydberg constants to more precisely reflect CODATA values for derived constants
+	* Use current mode for display of value, place units and uncertanity on same line, for variables in qalc
+
+2025-09-30 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Improve accuracy for intervals in solutions to equations when using interval arithmetic
+	* Improve handling of intervals in where expressions
+	* Move jerk, snap, crackle, and pop to subcategory
+	* Change title "Gee" to "Standard Gravity (unit)" and add standard gravity per second
+
+2025-09-29 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Avoid slow display of extreme numbers (> 2^10000000) with calculate-as-you-type
+	* Add min/km and min/mile (pace)
+	* Fix output of extremely large exact number with unnecessarily low precision with PrintOptions::preverve_precision activated
+	* Restrict number of digits (10000) for extremely large numbers when saving variable to file
+	* Fix 10 in scientific notation for approximate number in variable value displayed with decimals
+
+2025-09-25 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Fix segfault when calculating log(a^n, a) with interval arthmetic is disabled
+	* Show warning and ask for confirmation when deactivating interval arithmetic in qalc
+	* (Re)activate interval arithmetic in qalc (if configuration from prevision version)
+
+2025-09-24 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Fix language option without encoding (without ".utf8" at end)
+	* Fix LANGUAGE and LANG variables for translation of definitions on platforms other than Window
+	* Fix scruple unit typo ("scuple")
+	* Hide questionable IUNS calorie unit
+	* Initialize tm_isdst with -1 to make time zone determination more predictable, and accurate, for time around when daylight saving changes
+
+2025-09-22 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Make titles for derived units without special symbols more consistent
+	* Automatically update calculate-as-you-type calculations every second when the expression contains now or uptime variable, or time() function
+	* Automatically calculate expression with "to"-operator even if it contains no other operator or number
+	* Fix id of uptime variable (was same as id for plus infinity)
+
+2025-09-21 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Add Kayser, Lambert, Foot-Lambert, Darcy, and Millidarcy units
+	* Fix unit selection for automatic conversion from single unit with quantity one in some cases (e.g. barye)
+
+2025-09-19 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Use mol as base unit for Einstein and clarify that Einstein refers to one mole of pohoton
+	* Match object name on words after underscore, e.g. oz in fl_oz (find/list command)
+	* Move (micro)einstein/(m²⋅s) to new category (molar flux) and add corresponding SI units
+
+2025-09-18 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Fix inequality with 1/f(x) on one side, e.g. "1/(x-2) <= 2"
+	* Add erg/(cm²⋅s) unit
+	* Lower max bit width in bitrot(), bitset(), and setbits() functions, and max steps in shift()
+
+2025-09-17 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Fix endless loop in Calculator::hasToExpression() with expression containing negative circled sans-serif digit dingbat
+	* Add (reduced) compton wavelength for muon, neutron, proton, and tau
+	* Add ƛ_C symbol to reduced compton wavelength and change alternative symbol for natural unit of length to ƛ_unit
+	* Stricter command argument in command() function
+	* Fix search term with more than one word and search for word preceded by parenthesis in title
+	* Specify minimal vector size for linearfit(), quadraticfit(), and cubicfit() functions
+
+2025-09-15 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* More efficient reducing of vector size (fixes segfault when aborting plot with very large number of samples)
+
+2025-09-14 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Fix segfault when plot data generation is aborted before first y value has been calculated
+
+2025-09-12 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Fix segfault (infinite loop) in Calculator::findMatchingUnit() with "sr*Pa^2"
+	* Improve abortion of prime functions, and fix segfault when aborting prevprime() function
+	* Fix possible freeze when creating CompositeUnit with malformed expression (primarily relevant when parsing expression after "to" operator)
+	* Lower highest number of bits (to 10 000) in floating point conversion functions to avoid unresponsive application
+
+2025-09-11 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Fix value of Planck unit (was rounded to 7 decimals)
+
+2025-09-08 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Relocate qalc.history to $XDG_STATE_HOME (~/.local/state)
+
+2025-09-03 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Do not show calculate as you type result for data set function with "info" (default) as second argument
+	* Separate translation of "info" as data set argument from "info" as qalc command
+	* Add "simple" to-operator option for non-scientific notation and apply non-scientific notation (exp off) for "decimal"
+
+2025-09-01 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Show warning about default assumptions the first time an equation is solved, in qalc
+	* Show warning when trying to calculate logarithm of quantity with unit, or value with unit in exponent
+	* Show warning "(!)" when calculate as you type expression, in qalc, results in a question
+
+2025-08-31 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Fix segfault with very small numbers (when floatValue() should return zero), high number of bits, and insufficient precision, in floating point conversion
+
+2025-08-30 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Update calculation of fraction of year (with day counting basis 0 and 1) to match method used in spreadsheets other than Gnumeric
+
+2025-08-29 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Add output in scientific (sci), or engineering (eng), notation as "to"-operator option (e.g. 1000 000 to sci = 1E6; also affects use of unit prefixes, negative unit exponents, etc.)
+
+2025-08-27 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Fix dollarde() and dollarfr() functions
+
+2025-08-22 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Allow use of non-existing variables, without using quotation marks or backslash (now also supported in X variable value), in plot expressions, and set appropriate assumptions in all cases (this affects GUIs but not the plot() function)
+
+2025-08-20 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Parse 'p' in hexadecimal number as an operator (raise and multiply after parsing during calculation, e.g. 5p10 = 0x5 * 0x2^10), as with scientific E-notation, in order to improve display of parsed expression and avoid slow and very memory intensive calculations which might cause segfault in mpz_ui_pow_ui
+	* Fix poolvar(), ttest(), and cor() functions
+	* cor() and pearson() are the same function
+	* Simplify (do not use csum() function) poolvar(), covar(), meandev(), var(), varp(), rms(), geomean(), harmmean(), and weighmean() functions
+	* Change default quantile algorithm from 8 to 7
+	* Only allow positive values in geomean() and harmmean() functions
+
+2025-08-16 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Fix calculate as you type and indentation with prompt string containing Unicode characters, control characters, and/or escape sequences
+	* Add "save config" option (if disabled qalc.cfg is never automatically updated)
+
+2025-08-11 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Add symbols/abbreviations with variant name (US, UK) as suffix (shown as subscript), and hide corresponding symbol/abbreviation with variant as prefix
+	* Add TeX scaled point unit
+	* Change "ATA Pica" to "Johnson Pica" and "ATA Point" to "American Point", and make corresponding name/symbol changes
+	* Set minimum preferred prefix to 0 for metric ton
+	* Return first argument of uncertainty() function directly without evaluation, in midpoint() function
+
+2025-08-09 Hanna Knutsson <hanna.knutsson@protonmail.com>
+
+	* Add TeX point, twip, and agate typography units
+
 2025-08-03 Hanna Knutsson <hanna.knutsson@protonmail.com>
 
 	* Fix segfault when parsing "( \" followed by operator with RPN syntax
@@ -534,7 +799,7 @@
 2024-04-20 Hanna Knutsson <hanna.knutsson@protonmail.com>
 
 	* Do not show error for 2nd argument with unknown variable in root() function
-	* Fix precision for approximate data set number values, without uncertainty explicitely specified, with positive scientific e-notation exponent
+	* Fix precision for approximate data set number values, without uncertainty explicitly specified, with positive scientific e-notation exponent
 	* Ignore two's input setting for hexadecimal floating-point literals using 0x...p... notation
 
 2024-04-15 Hanna Knutsson <hanna.knutsson@protonmail.com>

@@ -379,7 +379,7 @@ DataSet::DataSet(string s_category, string s_name, string s_default_file, string
 	b_loaded = false;
 	setArgumentDefinition(1, new DataObjectArgument(this, _("Object")));
 	setArgumentDefinition(2, new DataPropertyArgument(this, _("Property")));
-	setDefaultValue(2, _("info"));
+	setDefaultValue(2, _c("Data set argument", "info"));
 	setChanged(false);
 }
 DataSet::DataSet(const DataSet *o) {
@@ -410,7 +410,7 @@ int DataSet::calculate(MathStructure &mstruct, const MathStructure &vargs, const
 		CALCULATOR->error(true, _("Object %s not available in data set."), vargs[0].symbol().c_str(), NULL);
 		return 0;
 	}
-	if(equalsIgnoreCase(vargs[1].symbol(), string("info")) || equalsIgnoreCase(vargs[1].symbol(), string(_("info")))) {
+	if(equalsIgnoreCase(vargs[1].symbol(), string("info")) || equalsIgnoreCase(vargs[1].symbol(), string(_c("Data set argument", "info")))) {
 		string str = printProperties(o);
 		CALCULATOR->message(MESSAGE_INFORMATION, str.c_str(), NULL);
 		return 1;
@@ -451,6 +451,21 @@ void DataSet::setDefaultDataFile(string s_file) {
 const string &DataSet::defaultDataFile() const {
 	return sfile;
 }
+
+#define UPDATE_LOCALE_LANG				if(locale_variant < 0 && lang) {\
+								for(size_t ilv = 0; ilv < strlen((char*) lang); ilv++) {\
+									if(lang[ilv] == '_') locale_variant = 0;\
+									else if(lang[ilv] == '-') {\
+										locale_variant = 1;\
+										gsub("_", "-", altlocale);\
+										gsub("_", "-", locale);\
+										if(locale == "zh-CN") locale = "zh-Hans-CN";\
+										else if(locale == "zh-TW") locale = "zh-Hant-TW";\
+										if(altlocale == "zh-CN") altlocale = "zh-Hans-CN";\
+										else if(altlocale == "zh-TW") altlocale = "zh-Hant-TW";\
+									}\
+								}\
+							}
 
 #ifdef _WIN32
 #	define FILE_SEPARATOR_CHAR '\\'
@@ -509,53 +524,13 @@ bool DataSet::loadObjects(const char *file_name, bool is_user_defs) {
 	xmlDocPtr doc;
 	xmlNodePtr cur, child;
 
-	string locale, lang_tmp;
-#ifdef _WIN32
-	size_t n = 0;
-	getenv_s(&n, NULL, 0, "LANG");
-	if(n > 0) {
-		char *c_lang = (char*) malloc(n * sizeof(char));
-		getenv_s(&n, c_lang, n, "LANG");
-		locale = c_lang;
-		free(c_lang);
-	} else {
-		getenv_s(&n, NULL, 0, "LANGUAGE");
-		if(n > 0) {
-			char *c_lang = (char*) malloc(n * sizeof(char));
-			getenv_s(&n, c_lang, n, "LANGUAGE");
-			locale = c_lang;
-			free(c_lang);
-		} else {
-			ULONG nlang = 0;
-			DWORD n = 0;
-			if(GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &nlang, NULL, &n)) {
-				WCHAR* wlocale = new WCHAR[n];
-				if(GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &nlang, wlocale, &n)) {
-					locale = utf8_encode(wlocale);
-				}
-				delete[] wlocale;
-			}
-		}
-	}
-	gsub("-", "_", locale);
-#else
-	char *clocale = setlocale(LC_MESSAGES, NULL);
-	if(clocale) locale = clocale;
-#endif
-	if(CALCULATOR->getIgnoreLocale() || locale == "POSIX" || locale == "C") {
-		locale = "";
-	} else {
-		size_t i = locale.find('.');
-		if(i != string::npos) locale = locale.substr(0, i);
-	}
+	string locale, altlocale;
+	vector<string> locales = CALCULATOR->getDefinitionsLocales();
+	if(locales.size() >= 1) locale = locales[0];
+	if(locales.size() >= 2) altlocale = locales[1];
 
-	string localebase;
-	if(locale.length() > 2) {
-		localebase = locale.substr(0, 2);
-	} else {
-		localebase = locale;
-	}
-	while(localebase.length() < 2) localebase += " ";
+	int locale_variant = -1;
+	if(locale.find("_") == string::npos && altlocale.find("_") == string::npos) locale_variant = 0;
 
 #ifdef COMPILED_DEFINITIONS
 	if(!is_user_defs) {
@@ -701,9 +676,10 @@ bool DataSet::loadObjects(const char *file_name, bool is_user_defs) {
 							if(properties[i]->propertyType() == PROPERTY_STRING) {
 								value = xmlNodeListGetString(doc, child->xmlChildrenNode, 1);
 								lang = xmlNodeGetLang(child);
+								UPDATE_LOCALE_LANG
 								ils = -1;
 								for(int i3 = lang_status_p.size(); i3 > 0; i3--) {
-									if(lang_status_p[i3 - 1] == properties[i3 - 1]) {
+									if(lang_status_p[i3 - 1] == properties[i]) {
 										ils = i3 - 1;
 										break;
 									}
@@ -746,7 +722,7 @@ bool DataSet::loadObjects(const char *file_name, bool is_user_defs) {
 											str = "";
 										}
 										o->setProperty(properties[i], str, i_approx);
-									} else if((ils < 0 || lang_status[ils] < 1) && strlen((char*) lang) >= 2 && lang[0] == localebase[0] && lang[1] == localebase[1]) {
+									} else if((ils < 0 || lang_status[ils] < 1) && !altlocale.empty() && altlocale == (char*) lang) {
 										if(ils < 0 && properties[i]->isKey()) o->setNonlocalizedKeyProperty(properties[i], o->getProperty(properties[i]));
 										if(ils < 0) {
 											lang_status_p.push_back(properties[i]);
@@ -1105,7 +1081,7 @@ bool DataPropertyArgument::subtest(MathStructure &value, const EvaluationOptions
 	if(!value.isSymbolic()) {
 		value.eval(eo);
 	}
-	return value.isSymbolic() && o_data && (o_data->getProperty(value.symbol()) || equalsIgnoreCase(value.symbol(), string("info")) || equalsIgnoreCase(value.symbol(), string(_("info"))));
+	return value.isSymbolic() && o_data && (o_data->getProperty(value.symbol()) || equalsIgnoreCase(value.symbol(), string("info")) || equalsIgnoreCase(value.symbol(), string(_c("Data set argument", "info"))));
 }
 int DataPropertyArgument::type() const {return ARGUMENT_TYPE_DATA_PROPERTY;}
 Argument *DataPropertyArgument::copy() const {return new DataPropertyArgument(this);}

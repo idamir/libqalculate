@@ -690,6 +690,18 @@ int LogFunction::calculate(MathStructure &mstruct, const MathStructure &vargs, c
 			}
 		}
 	}
+	MathStructure *mtest = &mstruct;
+	if(mtest->isPower()) mtest = mtest->exponent();
+	bool unit_error = mtest->isUnit_exp();
+	if(mtest->isMultiplication()) {
+		for(size_t i = 0; i < mtest->size(); i++) {
+			if(mtest->getChild(i + 1)->isUnit_exp()) {
+				unit_error = true;
+				break;
+			}
+		}
+	}
+	if(unit_error) CALCULATOR->error(false, _("Unexpected unit in logarithm."), NULL);
 	if(eo.allow_complex && mstruct.representsNegative()) {
 		mstruct.negate();
 		mstruct.transformById(FUNCTION_ID_LOG);
@@ -766,9 +778,7 @@ int LognFunction::calculate(MathStructure &mstruct, const MathStructure &vargs, 
 		if(nr.log(mstructv2.number())) {
 			if(eo.approximation != APPROXIMATION_APPROXIMATE && !mstruct.isApproximate() && !mstructv2.isApproximate() && nr.isApproximate() && (eo.approximation == APPROXIMATION_EXACT || (nr < 100 && nr > -100)) && !nr.isNonInteger()) {
 				Number nr2;
-				bool b = false;
-				nr.getCentralInteger(nr2, &b);
-				if(!b) {
+				if(nr.getCentralInteger(nr2)) {
 					Number nr_test(mstructv2.number());
 					nr_test.raise(nr2, eo.approximation == APPROXIMATION_EXACT);
 					if(mstruct.number().equals(nr_test)) {

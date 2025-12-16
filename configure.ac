@@ -6,7 +6,7 @@ dnl  ----------------------
 dnl | initialize autotools |---------------------------------------------------
 dnl  ----------------------
 
-AC_INIT([libqalculate],[5.7.0])
+AC_INIT([libqalculate],[5.8.2])
 AC_CONFIG_SRCDIR(libqalculate/Calculator.cc)
 AM_INIT_AUTOMAKE
 AC_CONFIG_HEADERS(config.h)
@@ -44,7 +44,6 @@ AX_PROG_CXX_FOR_BUILD
 AC_PROG_LN_S
 AC_PROG_EGREP
 
-IT_PROG_INTLTOOL
 LT_INIT
 
 dnl  ------------------------------------
@@ -73,7 +72,7 @@ QALCULATE_CURRENT=26
 
 dnl increment any time the source changes; set to 
 dnl  0 if you increment CURRENT
-QALCULATE_REVISION=6
+QALCULATE_REVISION=9
 
 dnl increment if any interfaces have been added; set to 0
 dnl  if any interfaces have been removed. removal has 
@@ -283,14 +282,14 @@ GETTEXT_PACKAGE=libqalculate
 AC_SUBST(GETTEXT_PACKAGE)
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,"$GETTEXT_PACKAGE",[The package name for gettext])
 
-dnl Please keep this in alphabetical order
-ALL_LINGUAS="ca de es fr ka nl ru sv zh_CN zh_TW"
 AM_GNU_GETTEXT(external)
-AM_GNU_GETTEXT_VERSION([0.19.8])
+AM_GNU_GETTEXT_REQUIRE_VERSION([0.19.7])
 
 if test "$USE_NLS" = yes; then
 	AC_DEFINE([ENABLE_NLS], [1], [Define to 1 if translation of program messages to the user's native language is requested.])
 fi
+
+AM_CONDITIONAL([ENABLE_NLS], [test "$USE_NLS" = yes])
 
 dnl AM_GLIB_GNU_GETTEXT sets $DATADIRNAME
 AC_MSG_CHECKING(locale directory)
@@ -309,11 +308,10 @@ AC_DEFINE_UNQUOTED(PACKAGE_LOCALE_DIR, "$PACKAGE_LOCALE_DIR",
 	[The directory in which qalculate's locale data will be stored])
 	 AC_MSG_RESULT("$PACKAGE_LOCALE_DIR")
 
-QALCULATE_PODEFS_RULE='%.po: $(top_srcdir)/po-defs/$@ $(top_srcdir)/po-defs/remove-untranslated.cc; $(top_builddir)/po-defs/fixpo $(top_srcdir)/po-defs/$@ $@'
+QALCULATE_PODEFS_RULE='%.po: $(top_srcdir)/po-defs/$@ $(top_srcdir)/po-defs-fixed/remove-untranslated.cc; $(top_builddir)/po-defs-fixed/fixpo $(top_srcdir)/po-defs/$@ $@'
 AC_SUBST(QALCULATE_PODEFS_RULE)
 
-INTLTOOL_QALCULATE_DEFINITIONS_RULE='%.xml:       %.xml.in      $(INTLTOOL_MERGE) $(wildcard $(top_builddir)/po-defs/fixed/*.po) ; LC_ALL=C $(INTLTOOL_MERGE) -x -u -c $(top_builddir)/po-defs/fixed/.intltool-merge-cache $(top_builddir)/po-defs/fixed $< [$]@'
-AC_SUBST(INTLTOOL_QALCULATE_DEFINITIONS_RULE)
+AC_CONFIG_LINKS([po-defs-fixed/fixed/LINGUAS:po-defs/LINGUAS])
 
 dnl  --------
 dnl | output |-----------------------------------------------------------------
@@ -325,11 +323,13 @@ AC_CONFIG_FILES([
   libqalculate/Makefile
   data/Makefile
   po/Makefile.in
-  po-defs/Makefile
-  po-defs/fixed/Makefile
+  po-defs/Makefile.in
+  po-defs-fixed/Makefile
+  po-defs-fixed/fixed/Makefile
   docs/Makefile
   docs/reference/Makefile
   man/Makefile
+  tests/Makefile
   libqalculate.pc
 ])
 AC_OUTPUT

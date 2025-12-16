@@ -34,12 +34,46 @@
 #define PREPEND_REF(o)		{MathStructure *m_append = o; v_order.insert(v_order.begin(), v_subs.size()); v_subs.push_back(m_append); m_append->ref(); if(!b_approx && m_append->isApproximate()) b_approx = true; if(m_append->precision() > 0 && (i_precision < 1 || m_append->precision() < i_precision)) i_precision = m_append->precision();}
 #define INSERT_REF(o, i)	{MathStructure *m_append = o; v_order.insert(v_order.begin() + i, v_subs.size()); v_subs.push_back(m_append); m_append->ref(); if(!b_approx && m_append->isApproximate()) b_approx = true; if(m_append->precision() > 0 && (i_precision < 1 || m_append->precision() < i_precision)) i_precision = m_append->precision();}
 #define CLEAR			v_order.clear(); for(size_t i = 0; i < v_subs.size(); i++) {v_subs[i]->unref();} v_subs.clear();
-//#define REDUCE(v_size)		for(size_t v_index = v_size; v_index < v_order.size(); v_index++) {v_subs[v_order[v_index]]->unref(); v_subs.erase(v_subs.begin() + v_order[v_index]);} v_order.resize(v_size);
-#define REDUCE(v_size)          {std::vector<size_t> v_tmp; v_tmp.resize(SIZE, 0); for(size_t v_index = v_size; v_index < v_order.size(); v_index++) {v_subs[v_order[v_index]]->unref(); v_subs[v_order[v_index]] = NULL; v_tmp[v_order[v_index]] = 1;} v_order.resize(v_size); for(std::vector<MathStructure*>::iterator v_it = v_subs.begin(); v_it != v_subs.end();) {if(*v_it == NULL) v_it = v_subs.erase(v_it); else ++v_it;} size_t i_change = 0; for(size_t v_index = 0; v_index < v_tmp.size(); v_index++) {if(v_tmp[v_index] == 1) i_change++; v_tmp[v_index] = i_change;} for(size_t v_index = 0; v_index < v_order.size(); v_index++) v_order[v_index] -= v_tmp[v_index];}
+#define REDUCE(v_size)          {\
+	for(size_t v_index = v_size; v_index < v_order.size(); v_index++) {\
+		v_subs[v_order[v_index]]->unref();\
+	}\
+	v_order.resize(v_size, 0);\
+	bool b_reorder_subs = false;\
+	for(size_t v_index = 0; v_index < v_order.size(); v_index++) {\
+		if(v_order[v_index] != v_index) {\
+			b_reorder_subs = true;\
+			break;\
+		}\
+	}\
+	if(b_reorder_subs) {\
+		std::vector<MathStructure*> v_subs_new;\
+		v_subs_new.resize(v_order.size(), NULL);\
+		for(size_t v_index = 0; v_index < v_order.size(); v_index++) {\
+			v_subs_new[v_index] = v_subs[v_order[v_index]];\
+		}\
+		v_subs = v_subs_new;\
+		for(size_t v_index = 0; v_index < v_order.size(); v_index++) {\
+			v_order[v_index] = v_index;\
+		}\
+	} else {\
+		v_subs.resize(v_order.size(), NULL);\
+	}\
+}
 #define CHILD(v_index)		(*v_subs[v_order[v_index]])
 #define SIZE			v_order.size()
 #define LAST			(*v_subs[v_order[v_order.size() - 1]])
-#define ERASE(v_index)		v_subs[v_order[v_index]]->unref(); v_subs.erase(v_subs.begin() + v_order[v_index]); for(size_t v_index2 = 0; v_index2 < v_order.size(); v_index2++) {if(v_order[v_index2] > v_order[v_index]) v_order[v_index2]--;} v_order.erase(v_order.begin() + (v_index));
+#define ERASE(v_index)		{\
+	size_t i_order = v_order[v_index];\
+	v_subs[i_order]->unref();\
+	v_subs.erase(v_subs.begin() + i_order);\
+	if(i_order < v_subs.size()) {\
+		for(std::vector<size_t>::iterator it = v_order.begin(); it != v_order.end(); ++it) {\
+			if(*it > i_order) (*it)--;\
+		}\
+	}\
+	v_order.erase(v_order.begin() + (v_index));\
+}
 
 #define IS_REAL(o)		(o.isNumber() && o.number().isReal())
 #define IS_RATIONAL(o)		(o.isNumber() && o.number().isRational())
@@ -52,6 +86,43 @@
 #define THIS_VALID_ROOT		(SIZE == 2 && CHILD(1).isNumber() && CHILD(1).number().isInteger() && CHILD(1).number().isPositive())
 
 #define FUNCTION_PROTECTED(evalops, id) (evalops.protected_function != NULL && evalops.protected_function == CALCULATOR->getFunctionById(id))
+
+#ifndef CLOCK_MONOTONIC
+#	define PREPARE_TIMECHECK_VAR struct timeval tv_end;
+#	define PREPARE_TIMECHECK_TIME(ms) \
+					gettimeofday(&tv_end, NULL); \
+					tv_end.tv_usec += ((ms) % 1000) * 1000; \
+					tv_end.tv_sec += ((ms) / 1000); \
+					if(tv_end.tv_usec >= 1000000L) { \
+						tv_end.tv_sec++; \
+						tv_end.tv_usec -= 1000000L; \
+					}
+#	define DO_TIMECHECK \
+					struct timeval tv; \
+					gettimeofday(&tv, NULL); \
+					if(tv.tv_sec > tv_end.tv_sec || (tv.tv_sec == tv_end.tv_sec && tv.tv_usec >= tv_end.tv_usec))
+#else
+#	define PREPARE_TIMECHECK_VAR struct timespec tv_end;
+#	define PREPARE_TIMECHECK_TIME(ms) \
+					clock_gettime(CLOCK_MONOTONIC, &tv_end); \
+					tv_end.tv_nsec += ((ms) % 1000) * 1000000L; \
+					tv_end.tv_sec += ((ms) / 1000); \
+					if(tv_end.tv_nsec >= 1000000000L) { \
+						tv_end.tv_sec++; \
+						tv_end.tv_nsec -= 1000000000L; \
+					}
+#	define DO_TIMECHECK \
+					struct timespec tv; \
+					clock_gettime(CLOCK_MONOTONIC, &tv); \
+					if(tv.tv_sec > tv_end.tv_sec || (tv.tv_sec == tv_end.tv_sec && tv.tv_nsec >= tv_end.tv_nsec))
+#endif
+#	define PREPARE_TIMECHECK(ms) PREPARE_TIMECHECK_VAR PREPARE_TIMECHECK_TIME(ms)
+
+#define INTERNAL_ID_L "\x02"
+#define INTERNAL_ID_R "\x03"
+#define INTERNAL_ID_L_CH '\x02'
+#define INTERNAL_ID_R_CH '\x03'
+#define INTERNAL_ID_LR "\x02\x03"
 
 void printRecursive(const MathStructure &mstruct);
 

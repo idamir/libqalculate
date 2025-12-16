@@ -824,9 +824,11 @@ SaveFunction::SaveFunction() : MathFunction("save", 2, 5) {
 int SaveFunction::calculate(MathStructure &mstruct, const MathStructure &vargs, const EvaluationOptions &eo) {
 	mstruct = vargs[0];
 	if(vargs[4].number().getBoolean()) mstruct.eval(eo);
-	size_t i = vargs[1].symbol().find(LEFT_PARENTHESIS);
-	if(i != string::npos) {
-		string name = vargs[1].symbol().substr(0, i);
+	size_t i = vargs[1].symbol().find(LEFT_PARENTHESIS, 1);
+	size_t i2 = string::npos;
+	if(i != string::npos) i2 = vargs[1].symbol().find_last_not_of(SPACES, i - 1);
+	if(i2 != string::npos) {
+		string name = vargs[1].symbol().substr(0, i2 + 1);
 		if(!CALCULATOR->functionNameIsValid(name)) {
 			CALCULATOR->error(true, _("Invalid function name (%s)."), name.c_str(), NULL);
 			if(vargs[4].number().getBoolean()) return -1;
@@ -912,6 +914,42 @@ int SaveFunction::calculate(MathStructure &mstruct, const MathStructure &vargs, 
 			}
 		}
 	}
+	i = vargs[1].symbol().find(LEFT_VECTOR_WRAP, 1);
+	i2 = string::npos;
+	if(i != string::npos) i2 = vargs[1].symbol().find_last_not_of(SPACES, i - 1);
+	if(i2 != string::npos) {
+		string name = vargs[1].symbol().substr(0, i2 + 1);
+		Variable *v = CALCULATOR->getActiveVariable(name);
+		if(!v || !v->isLocal() || !v->isKnown() || !((KnownVariable*) v)->get().isVector()) {
+			CALCULATOR->error(true, _("Matrix/vector (%s) not found."), name.c_str(), NULL);
+			if(vargs[4].number().getBoolean()) return -1;
+			return 0;
+		}
+		i2 = vargs[1].symbol().rfind(RIGHT_VECTOR_WRAP);
+		string index;
+		if(i2 == string::npos || i2 < i) index = vargs[1].symbol().substr(i + 1);
+		else index = vargs[1].symbol().substr(i + 1, i2 - (i + 1));
+		MathStructure mindex;
+		gsub(";", COMMA, index);
+		ParseOptions po = eo.parse_options;
+		po.base = 10;
+		CALCULATOR->parse(&mindex, index, po);
+		mindex.eval(eo);
+		mstruct.transformById(FUNCTION_ID_REPLACE_PART);
+		mstruct.insertChild(((KnownVariable*) v)->get(), 1);
+		if(mindex.isVector()) {
+			for(size_t i = 0; i < mindex.size(); i++) {
+				mstruct.addChild(mindex[i]);
+			}
+		} else {
+			mstruct.addChild(mindex);
+		}
+		while(mstruct.size() < 6) mstruct.addChild(m_zero);
+		mstruct.calculateFunctions(eo, false);
+		if(mstruct.isMatrix()) ((KnownVariable*) v)->set(mstruct);
+		CALCULATOR->saveFunctionCalled();
+		return 1;
+	}
 	if(!CALCULATOR->variableNameIsValid(vargs[1].symbol())) {
 		CALCULATOR->error(true, _("Invalid variable name (%s)."), vargs[1].symbol().c_str(), NULL);
 		if(vargs[4].number().getBoolean()) return -1;
@@ -974,6 +1012,28 @@ int CommandFunction::calculate(MathStructure &mstruct, const MathStructure &varg
 
 	FILE *pipe = NULL;
 	string commandline = vargs[0].symbol();
+	remove_blank_ends(commandline);
+	if(commandline.empty()) {
+		CALCULATOR->error(true, _("Failed to run external command (%s)."), commandline.c_str(), NULL);
+		return 0;
+	}
+	bool quoted = commandline.length() >= 2 && (commandline[0] == '\"' || commandline[0] == '\'') && commandline.find(commandline[0], 1) == commandline.length() - 1;
+	if(!quoted) {
+		if(commandline.find("\'") != string::npos) {
+			CALCULATOR->error(true, _("Failed to run external command (%s)."), commandline.c_str(), NULL);
+			return 0;
+		}
+		commandline.insert(0, "\'");
+		commandline += "\'";
+	}
+	string cmd;
+	size_t pos = commandline.find_last_of("/\\");
+	if(pos == string::npos) pos = 0;
+	cmd = commandline.substr(pos + 1, commandline.length() - (pos + 1) - 1);
+	if(cmd.empty() || cmd == "rm" || cmd == "wget" || cmd == "curl" || cmd == "exec" || cmd == "rmdir" || cmd == "su" || cmd == "sudo" || cmd.find("run") == 0 || cmd.find("python") == 0 || cmd.find("perl") == 0 || cmd.find("sh", cmd.length() - 2) != string::npos || cmd == "fdisk" || cmd.find("-open") != string::npos || cmd.find("-launch") != string::npos || cmd.find("terminal") != string::npos || cmd.find("rxvt") != string::npos || (cmd.length() >= 4 && cmd.find("term", cmd.length() - 4) != string::npos) || cmd.find("shell") != string::npos || cmd.find("command") != string::npos) {
+		CALCULATOR->error(true, _("Failed to run external command (%s)."), commandline.c_str(), NULL);
+		return 0;
+	}
 	for(size_t i = 1; i < vargs.size(); i++) {
 		commandline += " ";
 		if(vargs[i].isSymbolic()) {
@@ -1043,9 +1103,11 @@ int CommandFunction::calculate(MathStructure &mstruct, const MathStructure &varg
 	return 1;
 
 #	else
+	CALCULATOR->error(true, _("%s is disabled when %s is compiled with \"%s\" configure option."), (name() + "()").c_str(), "libqalculate", "--without-gnuplot-call", NULL);
 	return 0;
 #	endif
 #else
+	CALCULATOR->error(true, _("%s is disabled when %s is compiled with \"%s\" configure option."), (name() + "()").c_str(), "libqalculate", "--disable-insecure", NULL);
 	return 0;
 #endif
 }
@@ -1112,7 +1174,16 @@ int PlotFunction::parse(MathStructure &mstruct, const std::string &eq, const Par
 }
 
 int PlotFunction::calculate(MathStructure &mstruct, const MathStructure &vargs, const EvaluationOptions &eo) {
-
+#ifndef HAVE_GNUPLOT_CALL
+#	ifndef HAVE_BYO_GNUPLOT
+	CALCULATOR->error(true, _("%s is disabled when %s is compiled with \"%s\" configure option."), (name() + "()").c_str(), "libqalculate", "--without-gnuplot-call", NULL);
+	return 0;
+#	endif
+#endif
+	if(!CALCULATOR->canPlot()) {
+		CALCULATOR->error(true, _("Gnuplot was not found"), NULL);
+		return 0;
+	}
 	EvaluationOptions eo2;
 	eo2.parse_options = eo.parse_options;
 	eo2.approximation = APPROXIMATION_APPROXIMATE;

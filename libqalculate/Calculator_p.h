@@ -66,7 +66,7 @@ class Calculator_p {
 		long int custom_input_base_i;
 		Unit *local_currency;
 		int use_binary_prefixes;
-		MathFunction *f_cis, *f_erfi, *f_fresnels, *f_fresnelc, *f_dot, *f_times, *f_rdivide, *f_power, *f_parallel, *f_vertcat, *f_horzcat, *f_secant, *f_newton, *f_colon;
+		MathFunction *f_cis, *f_erfi, *f_fresnels, *f_fresnelc, *f_dot, *f_times, *f_rdivide, *f_power, *f_parallel, *f_vertcat, *f_horzcat, *f_secant, *f_newton, *f_colon, *f_replace_part;
 		Unit *u_byn;
 		Unit *u_kelvin, *u_rankine, *u_celsius, *u_fahrenheit;
 		Unit *custom_angle_unit;
@@ -78,10 +78,13 @@ class Calculator_p {
 		TemperatureCalculationMode temperature_calculation;
 		bool matlab_matrices;
 		bool persistent_plot;
+		int can_plot;
 		bool concise_uncertainty_input;
 		bool simplified_percentage_used;
 		int exchange_rates_url3;
 		long int fixed_denominator;
+		std::vector<std::string> definitions_locales;
+		bool definitions_locale_set;
 };
 
 class CalculateThread : public Thread {
