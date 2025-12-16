@@ -4841,11 +4841,11 @@
     </unit>
   </category>
   <category>
-    <title>Typography</title>
+    <_title>Typography</_title>
     <unit type="alias">
-      <title>PostScript Point (DTP)</title>
-      <description>The PostScript point, or desktop publishing point, is the screen-independent typographic unit commonly used in computer software and for digital printing. It is known as the big point (bp) in TeX.</description>
-      <names>ar:pt,a:pts,point,p:points,as:bp_tex,ao:tex_bp</names>
+      <_title>PostScript Point (DTP)</_title>
+      <_description>The PostScript point, or desktop publishing point, is the screen-independent typographic unit commonly used in computer software and for digital printing. It is known as the big point (bp) in TeX.</_description>
+      <_names>ar:pt,a:pts,point,p:points,as:bp_tex,ao:tex_bp</_names>
       <base>
         <unit>in</unit>
         <relation>1/72</relation>
@@ -4853,8 +4853,8 @@
       </base>
     </unit>
     <unit type="alias">
-      <title>TeX Point</title>
-      <names>r:tex_point,as:pt_TeX,ao:tex_pt,p:tex_points</names>
+      <_title>TeX Point</_title>
+      <_names>r:tex_point,as:pt_TeX,ao:tex_pt,p:tex_points</_names>
       <base>
         <unit>in</unit>
         <relation>1/72.27</relation>
@@ -4862,8 +4862,8 @@
       </base>
     </unit>
     <unit type="alias">
-      <title>TeX Scaled Point</title>
-      <names>r:tex_scaled_point,as:sp_TeX,ao:tex_sp,p:tex_scaled_points</names>
+      <_title>TeX Scaled Point</_title>
+      <_names>r:tex_scaled_point,as:sp_TeX,ao:tex_sp,p:tex_scaled_points</_names>
       <base>
         <unit>tex_point</unit>
         <relation>1/65536</relation>
@@ -4871,8 +4871,8 @@
       </base>
     </unit>
     <unit type="alias">
-      <title>PostScript Pica</title>
-      <names>r:pica,p:picas</names>
+      <_title>PostScript Pica</_title>
+      <_names>r:pica,p:picas</_names>
       <base>
         <unit>pt</unit>
         <relation>12</relation>
